@@ -134,6 +134,10 @@ class Grid {
         }
     }
     
+    /**
+     * Set a point of the grid with a specific value.
+     * This method returns the object for use chaining.
+     */
     setPoint(x, y, value) {
         this.values[x][y] = value;
         return this;
