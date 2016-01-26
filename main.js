@@ -150,7 +150,7 @@ class Grid {
     toString() {
         let result = `====== time: ${this.time} ======\n`;
         for (let x=0; x != this.values.length; ++x) {
-            let tmp = this.values[x].map((value) => { return (value === 0) ? '· ' : 'X '; });
+            let tmp = this.values[x].map((value) => { return (value === 0) ? '·' : 'X'; });
             tmp.splice(1, 0, '|');
             tmp.splice(-1, 0, '|')
             result += tmp.join(" ");
