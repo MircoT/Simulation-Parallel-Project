@@ -139,12 +139,20 @@ class Grid {
         return this;
     }
     
-    print(all) {
-        let complete = (all === undefined)? 1 : 0;
-        let result = `===== time: ${this.time} =====\n`;
-        for (let x=complete; x != this.values.length - complete; ++x) {
-            for (let y=complete; y != this.values[x].length - complete; ++y) {
-                result += `${(this.values[x][y] === 0) ? '· ' : 'X '}`;
+    /**
+     * Convert to string the grid.
+     * The result includes the boundaries.
+     */
+    toString() {
+        let result = `====== time: ${this.time} ======\n`;
+        for (let x=0; x != this.values.length; ++x) {
+            let tmp = this.values[x].map((value) => { return (value === 0) ? '· ' : 'X '; });
+            tmp.splice(1, 0, '|');
+            tmp.splice(-1, 0, '|')
+            result += tmp.join(" ");
+            if (x === 0 || x === this.values.length - 2) {
+                result += '\n';
+                result += '-'.repeat(tmp.join(" ").length);
             }
             result += '\n';
         }
@@ -189,8 +197,7 @@ if (cluster.isMaster) {
         /*.setPoint(1, 5, 1)
         .setPoint(6, 5, 1)
         .setPoint(6, 1, 1)*/;
-    console.log(grid.print());
-    //console.log(grid.print(true));
+    console.log(grid.toString());
     
     function main_loop() {
         if (grid.time < MAX_TIME) {
@@ -199,12 +206,12 @@ if (cluster.isMaster) {
                 console.log(message);
                 process.send(message);
             }
-            console.log(grid.print());
+            console.log(grid.toString());
         }
         else {
             clearInterval(main_loop_reference);
             /*grid.timeWarp(0);
-            console.log(grid.print());*/
+            console.log(grid.toString());*/
         }
     }
     
@@ -214,7 +221,7 @@ if (cluster.isMaster) {
         console.log(`I am worker #${cluster.worker.id} and I have received ${JSON.stringify(msg)}`);
         clearInterval(main_loop_reference);
         grid.backToTheFuture(msg.time, msg.point);
-        console.log("HERE\n", grid.print());
+        console.log("HERE\n", grid.toString());
         main_loop_reference = setInterval(main_loop, 0);
     });
 }
