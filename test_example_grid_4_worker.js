@@ -333,23 +333,61 @@
     {   
         console.log("I am master");
         // Create workers
-        for(var i = 0; i != 1; ++i)
+        for(var i = 0; i != 4; ++i)
         {
             cluster.fork();
         }
         
         let initial_params = [
+            // Worker 1
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    TL: 4,
+                    T: 3,
+                    L: 2,
+                    R: 2,
+                    B: 3,
+                    BR: 4
+                }
+            },
+            // Worker 2
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 4,
+                    TR: 3,
+                    L: 1,
+                    R: 1,
+                    BL: 3,
+                    B: 4
+                }
+            },
+            // Worker 3
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 1,
+                    TR: 2,
+                    L: 4,
+                    R: 4,
+                    BL: 2,
+                    B: 1
+                }
+            },
+            // Worker 4
             {   
                 x: 6,
                 y: 6,
                 boundaries: {
                     TL: 1,
-                    T: 1,
-                    TR: 1,
-                    L: 1,
-                    R: 1,
-                    BL: 1,
-                    B: 1,
+                    T: 2,
+                    L: 3,
+                    R: 3,
+                    B: 2,
                     BR: 1
                 }
             }
@@ -420,7 +458,7 @@
                 if (msg.hasOwnProperty('start_params'))
                 {
                     worker_grid = new Grid(
-                        cluster.worker.id,
+                        parseInt(cluster.worker.id),
                         msg.start_params.x,
                         msg.start_params.y,
                         msg.start_params.boundaries
@@ -432,12 +470,28 @@
                         .setPoint(3, 2, 1)
                         .setPoint(3, 3, 1)
                         .setPoint(2, 3, 1);*/
-                    worker_grid.setPoint(4, 5, 1)
-                        .setPoint(6, 4, 1)
-                        .setPoint(6, 5, 1)
-                        .setPoint(6, 6, 1)
-                        .setPoint(5, 6, 1);
-                    console.log(worker_grid.toString());
+                    if (cluster.worker.id == 1)
+                    {
+                       worker_grid.setPoint(4, 5, 1)
+                            .setPoint(6, 4, 1)
+                            .setPoint(6, 5, 1)
+                            .setPoint(6, 6, 1)
+                            .setPoint(5, 6, 1);
+                        //worker_grid.setPoint(6, 6, 1);
+                        console.log(worker_grid.toString());
+                    }
+                    /*else if (cluster.worker.id == 2)
+                    {
+                        worker_grid.setPoint(6, 1, 1);
+                    }
+                    else if (cluster.worker.id == 3)
+                    {
+                        worker_grid.setPoint(1, 6, 1);
+                    }
+                    else if (cluster.worker.id == 4)
+                    {
+                        worker_grid.setPoint(1, 1, 1);
+                    }*/
                     worker_grid.go(MAX_TIME);
                 }
                 else if (msg.hasOwnProperty('boundary_msg'))
@@ -461,7 +515,8 @@
                     //worker_grid.go(1);
                     //console.log(worker_grid.toString());
                     worker_grid.go(MAX_TIME);
-                    console.log(worker_grid.toString());
+                    if (cluster.worker.id == 1)
+                        console.log(worker_grid.toString());
                 }
             }
         );
