@@ -359,15 +359,17 @@
 
     // Max time of the simulation
     const MAX_TIME = parseInt(process.argv[2]) || 12;
-    // time interval of the main function of the workers
+    // Time interval of the main function of the workers
     const time_iterval = 55;
+    // Number of workers
+    const num_workers = 1
 
     /* ========================= MASTER ========================= */
     if(cluster.isMaster)
     {   
         console.log("I am master");
         // Create workers
-        for(var i = 0; i != 1; ++i)
+        for(var i = 0; i != num_workers; ++i)
         {
             cluster.fork();
         }
