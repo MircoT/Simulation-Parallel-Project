@@ -360,9 +360,9 @@
     // Max time of the simulation
     const MAX_TIME = parseInt(process.argv[2]) || 12;
     // Time interval of the main function of the workers
-    const time_iterval = 0;
+    const time_iterval = 250;
     // Number of workers
-    const num_workers = 3
+    const num_workers = 4;
 
     /* ========================= MASTER ========================= */
     if(cluster.isMaster)
@@ -491,7 +491,8 @@
         {
             return (value) => { return value.receiver === parseInt(inner_id); };
         };
-
+        //msg counter
+        var count_message = 0;
         // Message handler
         let message_handler = (msg) =>
         {
@@ -507,7 +508,8 @@
                         {
                             time: msg.messages.time,
                             sender: msg.messages.sender,
-                            list: tmp_messages
+                            list: tmp_messages,
+                            count: ++count_message
                         }
                     }  
                 );
@@ -612,14 +614,30 @@
                     (function()
                     {
                         //clearInterval(main_loop_reference); 
-                    
+                        //make senter list
                         if(!boundary_msg_times.has(msg.boundary_msg.time))
                         {
                             boundary_msg_times.set(msg.boundary_msg.time, new Map());
                         }
-                        boundary_msg_times
-                        .get(msg.boundary_msg.time)
-                        .set(msg.boundary_msg.sender,msg.boundary_msg);
+                        //get sender list
+                        var get_boundary_msg_list = boundary_msg_times.get(msg.boundary_msg.time);
+                        //have a old message?
+                        if(get_boundary_msg_list.has(msg.boundary_msg.sender))
+                        {
+                            //get message
+                            var boundary_msg = get_boundary_msg_list.get(msg.boundary_msg.sender);
+                            //if msg.count < new_msg.count
+                            if(boundary_msg.count < msg.boundary_msg.count)
+                            {
+                                //add
+                                get_boundary_msg_list.set(msg.boundary_msg.sender, msg.boundary_msg);
+                            }
+                        }
+                        //else add
+                        else
+                        {
+                            get_boundary_msg_list.set(msg.boundary_msg.sender, msg.boundary_msg);
+                        }
                                             
                         var processing = function(last)
                         { 
@@ -682,9 +700,10 @@
             //console.log(`<===== WORKER ${cluster.worker.id} =====>\n${worker_grid.toString()}`);
             
             // Only for clean output of the example
-            if (cluster.worker.id === 1 || 
-                cluster.worker.id === 2 || 
-                cluster.worker.id === 4)
+            if (//cluster.worker.id === 1 || 
+                //cluster.worker.id === 2 || 
+                cluster.worker.id === 4
+                )
             {
                 console.log("cluster.worker.id: "+cluster.worker.id+"\n"+worker_grid.toString());
             }
