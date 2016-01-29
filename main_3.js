@@ -87,19 +87,21 @@ class Grid
     
     get(index) 
     {
+        if(!this.isInside(index)) return 0;
         var relative = index.sub(this.pos).add(new Point(1,1));
         return this.values[relative.x][relative.y];  
     }
     
     set(index, val) 
     {
+        if(!this.isInside(index)) return;
         var relative = index.sub(this.pos).add(new Point(1,1));
         this.values[relative.x][relative.y] = val;  
     }
     
     endPoint()
     {
-        return this.pos.add(this.size)
+        return this.pos.add(this.size).add(new Point(-1,-1));
     }
     
     haveEndBorder()
@@ -184,6 +186,27 @@ class Grid
        return points;
     }
     
+    toString()
+    {
+        var output = "";
+        var xSize= this.values.length;
+        var ySize= this.values[0].length;
+         
+        for (var x = 0; x < ySize; ++x)
+        {
+            for (var y = 0; y < xSize; ++y)
+            {
+                output += this.values[y][x]+" ";
+            }
+            output+="\n";
+        }
+        return output;
+    }
+    
+    print()
+    {
+        console.log(this.toString())
+    }
     
 }
 
@@ -217,11 +240,16 @@ function main()
             },
         ]
         //test grid
-        var testGrid = new Grid(info[2]);
+        var leftGrid = new Grid(info[0]);
+        var rightGrid = new Grid(info[2]);
+        //print tables
+        leftGrid.print();
         //add diff
-        testGrid.set(new Point(3,2),true);
-        
-        console.log((new Grid(info[0])).getDifferent(testGrid));
+        rightGrid.set(new Point(3,0),1);
+        //print
+        rightGrid.print();
+        //diff
+        console.log(rightGrid.getDifferent(leftGrid));
         
         for(let id in cluster.workers)
         {
