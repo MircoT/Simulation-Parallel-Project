@@ -1,0 +1,22 @@
+{
+  "name": "gofl-parallel-grid",
+  "version": "1.0.0",
+  "description": "A project for Simulation exam.",
+  "main": "gofl_parallel_grid.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MircoT/Simulation-Parallel-Project.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MircoT/Simulation-Parallel-Project/issues"
+  },
+  "homepage": "https://github.com/MircoT/Simulation-Parallel-Project#readme",
+  "devDependencies": {
+    "mocha": "^2.4.5"
+  }
+}
