@@ -360,9 +360,9 @@
     // Max time of the simulation
     const MAX_TIME = parseInt(process.argv[2]) || 12;
     // Time interval of the main function of the workers
-    const time_iterval = 500;
+    const time_iterval = 0;
     // Number of workers
-    const num_workers = 4
+    const num_workers = 3
 
     /* ========================= MASTER ========================= */
     if(cluster.isMaster)
@@ -380,7 +380,7 @@
                 x: 6,
                 y: 6,
                 boundaries: {
-                    TL: 4,
+                   TL: 4,
                     T: 3,
                     L: 2,
                     R: 2,
@@ -419,6 +419,63 @@
                 x: 6,
                 y: 6,
                 boundaries: {
+                    T: 2,
+                    TL: 1,
+                    L: 3,
+                    R: 3,
+                    BR: 1,
+                    B: 2
+                }
+            },
+            /*
+            // Worker 1
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                   // TL: 4,
+                    T: 1,
+                    L: 2,
+                    R: 2,
+                    B: 1,
+                    //BR: 4
+                    BL: 2,
+                    TL: 2
+                }
+            },
+            // Worker 2
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 2,
+                    TR: 1,
+                    L: 1,
+                    R: 1,
+                    //BL: 3,
+                    BR: 1,
+                    B: 2
+                }
+            },
+            /*
+            // Worker 3
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 1,
+                    TR: 2,
+                    L: 4,
+                    R: 4,
+                    BL: 2,
+                    B: 1
+                }
+            },
+            // Worker 4
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
                     TL: 1,
                     T: 2,
                     L: 3,
@@ -426,7 +483,7 @@
                     B: 2,
                     BR: 1
                 }
-            }
+            }*/
         ];
 
         // Filter for messages, select a specific receiver
@@ -512,11 +569,18 @@
                     );
                     if (cluster.worker.id == 1)
                     {
-                       worker_grid.setPoint(4, 5, 1)
+                       worker_grid
+                            .setPoint(1, 5, 1)
+                            .setPoint(3, 4, 1)
+                            .setPoint(3, 5, 1)
+                            .setPoint(3, 6, 1)
+                            .setPoint(2, 6, 1);
+                            /*
+                            .setPoint(4, 5, 1)
                             .setPoint(6, 4, 1)
                             .setPoint(6, 5, 1)
                             .setPoint(6, 6, 1)
-                            .setPoint(5, 6, 1);
+                            .setPoint(5, 6, 1);*/
                         //worker_grid.setPoint(6, 6, 1);
                         /*worker_grid.setPoint(3, 6, 1);
                         worker_grid.setPoint(4, 6, 1);*/
