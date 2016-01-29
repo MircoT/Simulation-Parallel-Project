@@ -468,6 +468,9 @@
             console.log(worker_grid.toString());
         }        
         
+        //history
+        var boundary_msg_list = new Map();
+        
         // Set on message function
         process.on('message',(msg) =>
             {
@@ -506,20 +509,32 @@
                 }
                 else if (msg.hasOwnProperty('boundary_msg'))
                 {   
+                    boundary_msg_list.set(msg.boundary_msg.time,msg.boundary_msg);
                     clearInterval(main_loop_reference);
-                    worker_grid.clearBoundaries(msg.boundary_msg.time, msg.boundary_msg.sender);
-                    for (let cur_msg of msg.boundary_msg.list)
-                    {
-                        worker_grid.setBoundaryPoint(
-                            msg.boundary_msg.time,
-                            cur_msg.point.x,
-                            cur_msg.point.y,
-                            cur_msg.point.value,
-                            msg.boundary_msg.sender
-                        );
-                    }
-                    worker_grid.go(msg.boundary_msg.time);
-                    current_time = msg.boundary_msg.time;
+                    
+                    var processing = function(last){ 
+                        return function(boundary_msg,key, map)
+                        {
+                            if(key >= last)
+                            {
+                                worker_grid.clearBoundaries(boundary_msg.time, boundary_msg.sender);
+                                for (let cur_msg of boundary_msg.list)
+                                {
+                                    worker_grid.setBoundaryPoint(
+                                        boundary_msg.time,
+                                        cur_msg.point.x,
+                                        cur_msg.point.y,
+                                        cur_msg.point.value,
+                                        boundary_msg.sender
+                                    );
+                                }
+                                worker_grid.go(boundary_msg.time);
+                                current_time = boundary_msg.time;
+                            }
+                        };
+                    };                    
+                    boundary_msg_list.forEach(processing( msg.boundary_msg.time ));
+
                     main_loop_reference = setInterval(main_loop, time_iterval);
                 }
             }
