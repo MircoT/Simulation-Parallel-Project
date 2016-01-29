@@ -360,7 +360,7 @@
     // Max time of the simulation
     const MAX_TIME = parseInt(process.argv[2]) || 12;
     // Time interval of the main function of the workers
-    const time_iterval = 250;
+    const time_iterval = 500;
     // Number of workers
     const num_workers = 4
 
@@ -438,7 +438,7 @@
         // Message handler
         let message_handler = (msg) =>
         {
-            console.log(`---| MASTER received => ${JSON.stringify(msg)}`);
+            //console.log(`---| MASTER received => ${JSON.stringify(msg)}`);
             for(let inner_id in cluster.workers)
             {
                let tmp_messages = msg.messages.list.filter(message_filter(inner_id));
@@ -494,27 +494,14 @@
         let current_time = 0;
         var main_loop_reference = null;
         
-        function main_loop() {
-            if (current_time <= MAX_TIME)
-            {
-                worker_grid.go(current_time);
-                current_time++;
-            }
-            else {
-                console.log(`<===== WORKER ${cluster.worker.id} JOB DONE !!!!! =====>`);
-                clearInterval(main_loop_reference);
-            }
-            //console.log(`<===== WORKER ${cluster.worker.id} =====>\n${worker_grid.toString()}`);
-            
-            // Only for clean output of the example
-            if (cluster.worker.id === 4)
-                console.log(worker_grid.toString());
-        }        
+        //history all messages
+        var queue_all_boundary_msg = [];
+        //history
+        var boundary_msg_times = new Map();
         
-        // Set on message function
-        process.on('message',(msg) =>
+        function processing_msg(msg)
             {
-                console.log(`---| WORKER(${cluster.worker.id}) received => ${JSON.stringify(msg)}`);
+                //console.log(`---| WORKER(${cluster.worker.id}) received => ${JSON.stringify(msg)}`);
                 if (msg.hasOwnProperty('start_params'))
                 {
                     worker_grid = new Grid(
@@ -554,27 +541,98 @@
                         worker_grid.setPoint(4, 1, 1);*/
                     }
 
-                    main_loop_reference = setInterval(main_loop, time_iterval);
+                    //main_loop_reference = setInterval(main_loop, time_iterval);
                 }
                 else if (msg.hasOwnProperty('boundary_msg'))
-                {   
-                    clearInterval(main_loop_reference);
-                    worker_grid.clearBoundaries(msg.boundary_msg.time, msg.boundary_msg.sender);
-                    for (let cur_msg of msg.boundary_msg.list)
+                {             
+                    (function()
                     {
-                        worker_grid.setBoundaryPoint(
-                            msg.boundary_msg.time,
-                            cur_msg.point.x,
-                            cur_msg.point.y,
-                            cur_msg.point.value,
-                            msg.boundary_msg.sender
-                        );
-                    }
-                    worker_grid.go(msg.boundary_msg.time);
-                    current_time = msg.boundary_msg.time;
-                    main_loop_reference = setInterval(main_loop, time_iterval);
+                        //clearInterval(main_loop_reference); 
+                    
+                        if(!boundary_msg_times.has(msg.boundary_msg.time))
+                        {
+                            boundary_msg_times.set(msg.boundary_msg.time, new Map());
+                        }
+                        boundary_msg_times
+                        .get(msg.boundary_msg.time)
+                        .set(msg.boundary_msg.sender,msg.boundary_msg);
+                                            
+                        var processing = function(last)
+                        { 
+                            return function(sub_maps,time, map)
+                            {
+                                //for each sender
+                                sub_maps.forEach((boundary_msg,sender,_)=>
+                                    {
+                                        if(time >= last)
+                                        {
+                                            worker_grid.clearBoundaries(boundary_msg.time, boundary_msg.sender);
+                                            for (let cur_msg of boundary_msg.list)
+                                            {
+                                                worker_grid.setBoundaryPoint(
+                                                    boundary_msg.time,
+                                                    cur_msg.point.x,
+                                                    cur_msg.point.y,
+                                                    cur_msg.point.value,
+                                                    boundary_msg.sender
+                                                );
+                                            }
+                                            worker_grid.go(boundary_msg.time);
+                                            current_time = boundary_msg.time;
+                                        }
+                                    }
+                                );
+                            };
+                        };       
+                        //for all times             
+                        boundary_msg_times.forEach(processing( msg.boundary_msg.time ));
+/*
+                        if(current_time > MAX_TIME)
+                        { 
+                            main_loop_reference = setInterval(main_loop, time_iterval);
+                        }
+   */                     
+                    })();
                 }
             }
-        );
+        
+        function main_loop()
+         {
+            if(queue_all_boundary_msg.length > 0)
+            {
+                processing_msg(queue_all_boundary_msg.pop())
+            }
+            
+            if(worker_grid === null) return;
+             
+            if (current_time <= MAX_TIME)
+            {
+                worker_grid.go(current_time);
+                current_time++;
+            }
+            else 
+            {
+                console.log(`<===== WORKER ${cluster.worker.id} JOB DONE !!!!! =====>`);
+                //clearInterval(main_loop_reference);
+            }
+            //console.log(`<===== WORKER ${cluster.worker.id} =====>\n${worker_grid.toString()}`);
+            
+            // Only for clean output of the example
+            if (cluster.worker.id === 1 || 
+                cluster.worker.id === 2 || 
+                cluster.worker.id === 4)
+            {
+                console.log("cluster.worker.id: "+cluster.worker.id+"\n"+worker_grid.toString());
+            }
+        }        
+        
+        // Set on message function
+        process.on('message', (msg)=>
+        {
+            queue_all_boundary_msg.unshift(msg);
+        });
+        
+        //start loop
+        setInterval(main_loop, time_iterval);
     }
 })();

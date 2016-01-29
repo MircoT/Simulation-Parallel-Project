@@ -360,7 +360,7 @@
     // Max time of the simulation
     const MAX_TIME = parseInt(process.argv[2]) || 12;
     // Time interval of the main function of the workers
-    const time_iterval = 55;
+    const time_iterval = 0;
     // Number of workers
     const num_workers = 1
 
@@ -467,9 +467,8 @@
             }
             console.log(worker_grid.toString());
         }        
-        
         //history
-        var boundary_msg_list = new Map();
+        var boundary_msg_times = new Map();
         
         // Set on message function
         process.on('message',(msg) =>
@@ -509,31 +508,45 @@
                 }
                 else if (msg.hasOwnProperty('boundary_msg'))
                 {   
-                    boundary_msg_list.set(msg.boundary_msg.time,msg.boundary_msg);
+                    if(!boundary_msg_times.has(msg.boundary_msg.time))
+                    {
+                        boundary_msg_times.set(msg.boundary_msg.time, new Map());
+                    }
+                    boundary_msg_times
+                    .get(msg.boundary_msg.time)
+                    .set(msg.boundary_msg.sender,msg.boundary_msg);
+                    
                     clearInterval(main_loop_reference);
                     
-                    var processing = function(last){ 
-                        return function(boundary_msg,key, map)
+                    var processing = function(last)
+                    { 
+                        return function(sub_maps,time, map)
                         {
-                            if(key >= last)
-                            {
-                                worker_grid.clearBoundaries(boundary_msg.time, boundary_msg.sender);
-                                for (let cur_msg of boundary_msg.list)
+                            //for each sender
+                            sub_maps.forEach((boundary_msg,sender,_)=>
                                 {
-                                    worker_grid.setBoundaryPoint(
-                                        boundary_msg.time,
-                                        cur_msg.point.x,
-                                        cur_msg.point.y,
-                                        cur_msg.point.value,
-                                        boundary_msg.sender
-                                    );
+                                    if(time >= last)
+                                    {
+                                        worker_grid.clearBoundaries(boundary_msg.time, boundary_msg.sender);
+                                        for (let cur_msg of boundary_msg.list)
+                                        {
+                                            worker_grid.setBoundaryPoint(
+                                                boundary_msg.time,
+                                                cur_msg.point.x,
+                                                cur_msg.point.y,
+                                                cur_msg.point.value,
+                                                boundary_msg.sender
+                                            );
+                                        }
+                                        worker_grid.go(boundary_msg.time);
+                                        current_time = boundary_msg.time;
+                                    }
                                 }
-                                worker_grid.go(boundary_msg.time);
-                                current_time = boundary_msg.time;
-                            }
+                            );
                         };
-                    };                    
-                    boundary_msg_list.forEach(processing( msg.boundary_msg.time ));
+                    };       
+                    //for all times             
+                    boundary_msg_times.forEach(processing( msg.boundary_msg.time ));
 
                     main_loop_reference = setInterval(main_loop, time_iterval);
                 }
