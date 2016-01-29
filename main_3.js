@@ -67,7 +67,9 @@ class Grid
     {
         this.pos = info.pos;
         this.size = info.size;
-        
+        this.boundaries = info.boundaries;
+        this.time = info.time || 0;
+        //set prototype
         this.pos.__proto__ = Point.prototype;
         this.size.__proto__ = Point.prototype;
         
@@ -89,7 +91,8 @@ class Grid
     {
         if(!this.isInside(index)) return 0;
         var relative = index.sub(this.pos).add(new Point(1,1));
-        return this.values[relative.x][relative.y];  
+        var value = this.values[relative.x][relative.y]
+        return value;  
     }
     
     set(index, val) 
@@ -123,64 +126,125 @@ class Grid
                relative.y < this.values[0].length;
     }
     
-    isDifferent(grid,point)
+    isDifferent(grid,index)
     {
-        return this.isInside(point) &&
-               grid.isInside(point) && 
-               this.get(point) != grid.get(point);
+        return this.isInside(index) &&
+               grid.isInside(index) && 
+               this.get(index) != grid.get(index);
+    }
+    
+    getBoundary(index)
+    {   
+        //gloabl end point
+        var pos = this.pos;
+        var end = this.endPoint();
+        //send to
+        var to =[]
+        //left / right
+        if(index.y >= pos.y && index.y <=end.y)
+        {
+            if( index.x == pos.x && this.boundaries.hasOwnProperty("left"))
+                to.push(this.boundaries.left)
+                
+            if(index.x == end.x && this.boundaries.hasOwnProperty("right"))
+                to.push(this.boundaries.right)
+        } 
+        //top / bottom
+        if(index.x >= pos.x && index.x <=end.x)
+        {
+            if(index.y == pos.y && this.boundaries.hasOwnProperty("top"))
+            {
+                to.push(this.boundaries.top)
+                
+                if(index.x == pos.x && this.boundaries.hasOwnProperty("topLeft"))
+                     to.push(this.boundaries.topLeft);
+                if(index.x == end.x && this.boundaries.hasOwnProperty("topRight")) 
+                     to.push(this.boundaries.topRight);
+               
+            }
+                
+            if(index.y == end.y && this.boundaries.hasOwnProperty("bottom"))
+            {
+                to.push(this.boundaries.bottom)
+                
+                if(index.x == pos.x && this.boundaries.hasOwnProperty("bottomLeft"))
+                     to.push(this.boundaries.bottomLeft);
+                if(index.x == end.x && this.boundaries.hasOwnProperty("bottompRight")) 
+                     to.push(this.boundaries.bottompRight);
+            }
+        } 
+        
+        if(to.length == 0) return null;
+        return to;        
     }
     
     getDifferent(grid)
     {
         var points = [];
-        var top    = this.pos.add(new Point(-1,-1));
+        var top    = this.pos;
         var bottom = this.endPoint();
         
-        for(var x = top.x; x < bottom.x; ++x)
+        for(var x = top.x; x <= bottom.x; ++x)
         {
             //diff top line
             var pointTop = new Point(x,top.y);
             if(this.isDifferent(grid,pointTop))
             {
-                points.push
-                ({
-                    pos : pointTop,
-                    value : this.get(pointTop)
-                });
+                var wid = this.getBoundary(pointTop);
+                
+                if(wid != null) 
+                    points.push
+                    ({
+                        pos : pointTop,
+                        value : this.get(pointTop),
+                        worker : wid
+                    });
             }
             //diff bottom line
             var pointBottom = new Point(x,bottom.y);
             if(this.isDifferent(grid,pointBottom))
             {
-                points.push
-                ({
-                    pos : pointBottom,
-                    value : this.get(pointBottom)
-                });
+                var wid = this.getBoundary(pointBottom);
+                
+                if(wid != null) 
+                    points.push
+                    ({
+                        pos : pointBottom,
+                        value : this.get(pointBottom),
+                        worker : wid
+                    });
             }
         }
         
-        for(var y = top.y; y < bottom.y; ++y)
+        for(var y = top.y+1; y < bottom.y; ++y)
         {
             //diff left colunm
             var pointLeft = new Point(top.x,y);
             if(this.isDifferent(grid,pointLeft))
             {
-                points.push
-                ({
-                    pos : pointLeft,
-                    value : this.get(pointLeft)
-                });
+                var wid = this.getBoundary(pointLeft);
+                
+                if(wid != null) 
+                    points.push
+                    ({
+                        pos : pointLeft,
+                        value : this.get(pointLeft),
+                        worker : wid
+                    });
             }
             //diff right colunm
             var pointRight = new Point(bottom.x,y);
             if(this.isDifferent(grid,pointRight))
             {
-                points.push
-                ({
-                    pos : pointRight,
-                    value : this.get(pointRight)
-                });
+                var wid = this.getBoundary(pointRight);
+                
+                if(wid != null) 
+                    points.push
+                    ({
+                        pos : pointRight,
+                        value : this.get(pointRight),
+                        worker : wid
+                    });
             }
         }
        return points;
@@ -224,28 +288,52 @@ function main()
         [
             {
                 pos  : new Point(0,0),
-                size : new Point(4,4)
-            },
-            {
-                pos  : new Point(0,4),
-                size : new Point(4,4)
+                size : new Point(4,4),
+                boundaries : 
+                {
+                    right  : 2,
+                    bottom : 3,
+                    bottomRight : 4
+                }
             },
             {
                 pos  : new Point(4,0),
-                size : new Point(4,4)
+                size : new Point(4,4),
+                boundaries : 
+                {
+                    left : 1,
+                    bottom : 4,
+                    bottomLeft : 3
+                }
+            },
+            {
+                pos  : new Point(0,4),
+                size : new Point(4,4),
+                boundaries : 
+                {
+                    top: 1,
+                    right: 4,
+                    topRight:2
+                }
             },
             {
                 pos  : new Point(4,4),
-                size : new Point(4,4)
+                size : new Point(4,4),
+                boundaries : 
+                {
+                    top: 2,
+                    left: 3,
+                    topLeft: 1
+                }
             },
         ]
         //test grid
         var leftGrid = new Grid(info[0]);
-        var rightGrid = new Grid(info[2]);
+        var rightGrid = new Grid(info[1]);
         //print tables
         leftGrid.print();
         //add diff
-        rightGrid.set(new Point(3,0),1);
+        rightGrid.set(new Point(7,3),1);
         //print
         rightGrid.print();
         //diff
