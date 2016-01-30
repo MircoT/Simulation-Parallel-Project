@@ -2,6 +2,19 @@
 {
     'use strict';
     
+    Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };
+
+    class Message {
+        constructor (receiver, x, y, value) {
+            this.receiver = receiver;
+            this.point = {
+                'x': x,
+                'y': y,
+                'value': value
+            };
+        }
+    }
+    
     class Grid
     {
 
@@ -28,12 +41,69 @@
              * List of ID:
              * - [TL, T, TR, L, R, BL, B, BR]
              */
-            this.boundaries = boundaries;
+            this.boundaries = boundaries || {};
             this.history = new Map([[0, []]]);
             this.boundary_history = new Map([[0, []]]);
             this.message_sent = new Map();
             this.time = 0;
             this.worker_id = worker_id || -1;
+        }
+        
+        /**
+         * Check the edges and prepare messages for the neighbors
+         */
+        scanEdges()
+        {   
+            let message_list = [];
+            
+            let row_len = this.values.length;
+            let col_len = this.values[1].length;
+            
+            // CORNERS
+            if (this.boundaries.hasOwnProperty('TL') && this.values[1][1] === 1)
+            {
+                message_list.push(new Message(this.boundaries.TL, row_len - 1, col_len - 1, 1));
+            }
+            if (this.boundaries.hasOwnProperty('TR') && this.values[1][col_len - 2] === 1)
+            {
+                message_list.push(new Message(this.boundaries.TR, row_len - 1, 0, 1));
+            }
+            if (this.boundaries.hasOwnProperty('BL') && this.values[row_len - 2][1] === 1)
+            {
+                message_list.push(new Message(this.boundaries.BL, 0, col_len - 1, 1));
+            }
+            if (this.boundaries.hasOwnProperty('BR') && this.values[row_len - 2][col_len - 2] === 1)
+            {
+                message_list.push(new Message(this.boundaries.BR, 0, 0, 1));
+            }
+            
+            // TOP & BOTTOM
+            for (let y = 1; y != col_len - 1; ++y)
+            {
+                if (this.values[1][y] === 1)
+                {
+                    message_list.push(new Message(this.boundaries.T, row_len - 1, y, 1));
+                }
+                else if (this.values[row_len - 2][y] === 1)
+                {
+                    message_list.push(new Message(this.boundaries.B, 0, y, 1));
+                }
+            }
+            
+            // LEFT & RIGHT
+            for (let x = 1; x != row_len - 1; ++x)
+            {
+                if (this.values[x][1] === 1)
+                {
+                    message_list.push(new Message(this.boundaries.L, x, col_len - 1, 1));
+                }
+                else if (this.values[x][col_len - 2] === 1)
+                {
+                    message_list.push(new Message(this.boundaries.R, x, 0, 1));
+                }
+            }
+            
+            return message_list;
         }
         
         /**
