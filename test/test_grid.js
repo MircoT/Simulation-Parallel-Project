@@ -21,39 +21,17 @@ describe('Grid', function() {
                 grid.setPoint(1, 1, 1);
                 var messages = grid.scanEdges();
                 
-                assert.lengthOf(messages, 3);
-                
-                assert.doesNotThrow(
-                    function() {
-                        for (var cur_msg of messages)
-                        {
-                            if (cur_msg.receiver !== boundaries.TL &&
-                                cur_msg.receiver !== boundaries.T &&
-                                cur_msg.receiver !== boundaries.L)
-                                    throw new Error('Not in messages');
-                        }
-                    },
-                    Error
-                )
+                assert.strictEqual(messages.size, 3);
+                assert.lengthOf(messages.get(boundaries.TL), 1);
+                assert.strictEqual(messages.get(boundaries.TL)[0].point.x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.TL)[0].point.y, num_cols + 1);
+                assert.lengthOf(messages.get(boundaries.T), 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.y, 1);
+                assert.lengthOf(messages.get(boundaries.L), 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.x, 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
 
-                for (var cur_msg of messages)
-                {
-                    if (cur_msg.receiver === boundaries.TL)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows + 1);
-                        assert.strictEqual(cur_msg.point.y, num_cols + 1);
-                    }      
-                    else if (cur_msg.receiver === boundaries.T)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows + 1);
-                        assert.strictEqual(cur_msg.point.y, 1);
-                    }      
-                    else if (cur_msg.receiver === boundaries.L)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 1);
-                        assert.strictEqual(cur_msg.point.y, num_cols + 1);
-                    }      
-                }   
             });
             it('Top Right (random)', function () {
                 var boundaries = {
@@ -68,39 +46,17 @@ describe('Grid', function() {
                 grid.setPoint(1, num_cols, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 3);
+                assert.strictEqual(messages.size, 3);
+                assert.lengthOf(messages.get(boundaries.TR), 1);
+                assert.strictEqual(messages.get(boundaries.TR)[0].point.x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.TR)[0].point.y, 0);
+                assert.lengthOf(messages.get(boundaries.T), 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.y, num_cols);
+                assert.lengthOf(messages.get(boundaries.R), 1);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.x, 1);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
         
-                assert.doesNotThrow(
-                    function() {
-                        for (var cur_msg of messages)
-                        {
-                            if (cur_msg.receiver !== boundaries.TR &&
-                                cur_msg.receiver !== boundaries.T &&
-                                cur_msg.receiver !== boundaries.R)
-                                    throw new Error('Not in messages');
-                        }
-                    },
-                    Error
-                )
-
-                for (var cur_msg of messages)
-                {
-                    if (cur_msg.receiver === boundaries.TR)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows + 1);
-                        assert.strictEqual(cur_msg.point.y, 0);
-                    }      
-                    else if (cur_msg.receiver === boundaries.T)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows + 1);
-                        assert.strictEqual(cur_msg.point.y, num_cols);
-                    }      
-                    else if (cur_msg.receiver === boundaries.R)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 1);
-                        assert.strictEqual(cur_msg.point.y, 0);
-                    }      
-                }   
             });
             it('Bottom Left (random)', function () { 
                 var boundaries = {
@@ -115,39 +71,17 @@ describe('Grid', function() {
                 grid.setPoint(num_rows, 1, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 3);
+                assert.strictEqual(messages.size, 3);
+                assert.lengthOf(messages.get(boundaries.BL), 1);
+                assert.strictEqual(messages.get(boundaries.BL)[0].point.x, 0);
+                assert.strictEqual(messages.get(boundaries.BL)[0].point.y, num_cols + 1);
+                assert.lengthOf(messages.get(boundaries.B), 1);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.y, 1);
+                assert.lengthOf(messages.get(boundaries.L), 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.x, num_rows);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
         
-                assert.doesNotThrow(
-                    function() {
-                        for (var cur_msg of messages)
-                        {
-                            if (cur_msg.receiver !== boundaries.L &&
-                                cur_msg.receiver !== boundaries.BL &&
-                                cur_msg.receiver !== boundaries.B)
-                                    throw new Error('Not in messages');
-                        }
-                    },
-                    Error
-                )
-
-                for (var cur_msg of messages)
-                {
-                    if (cur_msg.receiver === boundaries.BL)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 0);
-                        assert.strictEqual(cur_msg.point.y, num_cols + 1);
-                    }      
-                    else if (cur_msg.receiver === boundaries.B)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 0);
-                        assert.strictEqual(cur_msg.point.y, 1);
-                    }      
-                    else if (cur_msg.receiver === boundaries.L)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows);
-                        assert.strictEqual(cur_msg.point.y, num_cols + 1);
-                    }      
-                }   
             });
             it('Bottom Right (random)', function () {
                 var boundaries = {
@@ -162,39 +96,17 @@ describe('Grid', function() {
                 grid.setPoint(num_rows, num_cols, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 3);
+                assert.strictEqual(messages.size, 3);
+                assert.lengthOf(messages.get(boundaries.BR), 1);
+                assert.strictEqual(messages.get(boundaries.BR)[0].point.x, 0);
+                assert.strictEqual(messages.get(boundaries.BR)[0].point.y, 0);
+                assert.lengthOf(messages.get(boundaries.B), 1);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.y, num_cols);
+                assert.lengthOf(messages.get(boundaries.R), 1);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.x, num_rows);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
         
-                assert.doesNotThrow(
-                    function() {
-                        for (var cur_msg of messages)
-                        {
-                            if (cur_msg.receiver !== boundaries.R &&
-                                cur_msg.receiver !== boundaries.BR &&
-                                cur_msg.receiver !== boundaries.B)
-                                    throw new Error('Not in messages');
-                        }
-                    },
-                    Error
-                )
-
-                for (var cur_msg of messages)
-                {
-                    if (cur_msg.receiver === boundaries.BR)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 0);
-                        assert.strictEqual(cur_msg.point.y, 0);
-                    }      
-                    else if (cur_msg.receiver === boundaries.B)
-                    {
-                        assert.strictEqual(cur_msg.point.x, 0);
-                        assert.strictEqual(cur_msg.point.y, num_cols);
-                    }      
-                    else if (cur_msg.receiver === boundaries.R)
-                    {
-                        assert.strictEqual(cur_msg.point.x, num_rows);
-                        assert.strictEqual(cur_msg.point.y, 0);
-                    }      
-                }   
             });
             it('Top (random)', function () {
                 var boundaries = {
@@ -207,14 +119,14 @@ describe('Grid', function() {
                 var point = {
                     x: 1,
                     y: Math.round(Math.random()*((num_cols - 1) - 2) + 2)
-                }
+                };
                 grid.setPoint(point.x, point.y, 1);
                 var messages = grid.scanEdges();
                 
-                assert.lengthOf(messages, 1);
-                assert.strictEqual(messages[0].receiver, boundaries.T);
-                assert.strictEqual(messages[0].point.x, num_rows + 1);
-                assert.strictEqual(messages[0].point.y, point.y);
+                assert.strictEqual(messages.size, 1);
+                assert.lengthOf(messages.get(boundaries.T), 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].point.y, point.y);
             });
             it('Bottom (random)', function () {
                 var boundaries = {
@@ -227,14 +139,14 @@ describe('Grid', function() {
                 var point = {
                     x: num_rows,
                     y: Math.round(Math.random()*((num_cols - 1) - 2) + 2)
-                }
+                };
                 grid.setPoint(point.x, point.y, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 1);
-                assert.strictEqual(messages[0].receiver, boundaries.B);
-                assert.strictEqual(messages[0].point.x, 0);
-                assert.strictEqual(messages[0].point.y, point.y);
+                assert.strictEqual(messages.size, 1);
+                assert.lengthOf(messages.get(boundaries.B), 1);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].point.y, point.y);
             });
             it('Left (random)', function () { 
                 var boundaries = {
@@ -247,14 +159,14 @@ describe('Grid', function() {
                 var point = {
                     x: Math.round(Math.random()*((num_rows - 1) - 2) + 2),
                     y: 1
-                }
+                };
                 grid.setPoint(point.x, point.y, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 1);
-                assert.strictEqual(messages[0].receiver, boundaries.L);
-                assert.strictEqual(messages[0].point.x, point.x);
-                assert.strictEqual(messages[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.size, 1);
+                assert.lengthOf(messages.get(boundaries.L), 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.x, point.x);
+                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
             });
             it('Right (random)', function () {
                 var boundaries = {
@@ -267,14 +179,14 @@ describe('Grid', function() {
                 var point = {
                     x: Math.round(Math.random()*((num_rows - 1) - 2) + 2),
                     y: num_cols
-                }
+                };
                 grid.setPoint(point.x, point.y, 1);
                 var messages = grid.scanEdges();
 
-                assert.lengthOf(messages, 1);
-                assert.strictEqual(messages[0].receiver, boundaries.R);
-                assert.strictEqual(messages[0].point.x, point.x);
-                assert.strictEqual(messages[0].point.y, 0);
+                assert.strictEqual(messages.size, 1);
+                assert.lengthOf(messages.get(boundaries.R), 1);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.x, point.x);
+                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
             });
         });
     });

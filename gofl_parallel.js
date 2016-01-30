@@ -54,7 +54,7 @@
          */
         scanEdges()
         {   
-            let message_list = [];
+            let messages = new Map();
             
             let row_len = this.values.length;
             let col_len = this.values[1].length;
@@ -62,31 +62,55 @@
             // CORNERS
             if (this.boundaries.hasOwnProperty('TL') && this.values[1][1] === 1)
             {
-                message_list.push(new Message(this.boundaries.TL, row_len - 1, col_len - 1, 1));
+                if (!messages.has(this.boundaries.TL)) {
+                    messages.set(this.boundaries.TL, []);
+                }
+                messages.get(this.boundaries.TL).push(
+                    new Message(this.boundaries.TL, row_len - 1, col_len - 1, 1));
             }
             if (this.boundaries.hasOwnProperty('TR') && this.values[1][col_len - 2] === 1)
             {
-                message_list.push(new Message(this.boundaries.TR, row_len - 1, 0, 1));
+                if (!messages.has(this.boundaries.TR)) {
+                    messages.set(this.boundaries.TR, []);
+                }
+                messages.get(this.boundaries.TR).push(
+                    new Message(this.boundaries.TR, row_len - 1, 0, 1));
             }
             if (this.boundaries.hasOwnProperty('BL') && this.values[row_len - 2][1] === 1)
             {
-                message_list.push(new Message(this.boundaries.BL, 0, col_len - 1, 1));
+                if (!messages.has(this.boundaries.BL)) {
+                    messages.set(this.boundaries.BL, []);
+                }
+                messages.get(this.boundaries.BL).push(
+                    new Message(this.boundaries.BL, 0, col_len - 1, 1));
             }
             if (this.boundaries.hasOwnProperty('BR') && this.values[row_len - 2][col_len - 2] === 1)
             {
-                message_list.push(new Message(this.boundaries.BR, 0, 0, 1));
+                if (!messages.has(this.boundaries.BR)) {
+                    messages.set(this.boundaries.BR, []);
+                }
+                messages.get(this.boundaries.BR).push(
+                    new Message(this.boundaries.BR, 0, 0, 1));
             }
             
             // TOP & BOTTOM
             for (let y = 1; y != col_len - 1; ++y)
             {
                 if (this.values[1][y] === 1)
-                {
-                    message_list.push(new Message(this.boundaries.T, row_len - 1, y, 1));
+                {   
+                    if (!messages.has(this.boundaries.T)) {
+                        messages.set(this.boundaries.T, []);
+                    }
+                    messages.get(this.boundaries.T).push(
+                        new Message(this.boundaries.T, row_len - 1, y, 1))
                 }
                 else if (this.values[row_len - 2][y] === 1)
                 {
-                    message_list.push(new Message(this.boundaries.B, 0, y, 1));
+                    if (!messages.has(this.boundaries.B)) {
+                        messages.set(this.boundaries.B, []);
+                    }
+                    messages.get(this.boundaries.B).push(
+                        new Message(this.boundaries.B, 0, y, 1));
                 }
             }
             
@@ -95,15 +119,23 @@
             {
                 if (this.values[x][1] === 1)
                 {
-                    message_list.push(new Message(this.boundaries.L, x, col_len - 1, 1));
+                    if (!messages.has(this.boundaries.L)) {
+                        messages.set(this.boundaries.L, []);
+                    }
+                    messages.get(this.boundaries.L).push(
+                        new Message(this.boundaries.L, x, col_len - 1, 1));
                 }
                 else if (this.values[x][col_len - 2] === 1)
                 {
-                    message_list.push(new Message(this.boundaries.R, x, 0, 1));
+                    if (!messages.has(this.boundaries.R)) {
+                        messages.set(this.boundaries.R, []);
+                    }
+                    messages.get(this.boundaries.R).push(
+                        new Message(this.boundaries.R, x, 0, 1));
                 }
             }
             
-            return message_list;
+            return messages;
         }
         
         /**
