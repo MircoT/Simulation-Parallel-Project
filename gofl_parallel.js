@@ -4,14 +4,11 @@
     
     Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };
 
-    class Message {
-        constructor (receiver, x, y, value) {
-            this.receiver = receiver;
-            this.point = {
-                'x': x,
-                'y': y,
-                'value': value
-            };
+    class Point {
+        constructor (x, y, value) {
+            this.x = x;
+            this.y = y;
+            this.value = value;
         }
     }
     
@@ -48,6 +45,14 @@
             this.time = 0;
             this.worker_id = worker_id || -1;
         }
+
+        /**
+         * Send all given messages
+         */
+        sendMessages(messages)
+        {
+            
+        }
         
         /**
          * Check the edges and prepare messages for the neighbors
@@ -66,7 +71,7 @@
                     messages.set(this.boundaries.TL, []);
                 }
                 messages.get(this.boundaries.TL).push(
-                    new Message(this.boundaries.TL, row_len - 1, col_len - 1, 1));
+                    new Point(row_len - 1, col_len - 1, 1));
             }
             if (this.boundaries.hasOwnProperty('TR') && this.values[1][col_len - 2] === 1)
             {
@@ -74,7 +79,7 @@
                     messages.set(this.boundaries.TR, []);
                 }
                 messages.get(this.boundaries.TR).push(
-                    new Message(this.boundaries.TR, row_len - 1, 0, 1));
+                    new Point(row_len - 1, 0, 1));
             }
             if (this.boundaries.hasOwnProperty('BL') && this.values[row_len - 2][1] === 1)
             {
@@ -82,7 +87,7 @@
                     messages.set(this.boundaries.BL, []);
                 }
                 messages.get(this.boundaries.BL).push(
-                    new Message(this.boundaries.BL, 0, col_len - 1, 1));
+                    new Point(0, col_len - 1, 1));
             }
             if (this.boundaries.hasOwnProperty('BR') && this.values[row_len - 2][col_len - 2] === 1)
             {
@@ -90,7 +95,7 @@
                     messages.set(this.boundaries.BR, []);
                 }
                 messages.get(this.boundaries.BR).push(
-                    new Message(this.boundaries.BR, 0, 0, 1));
+                    new Point(0, 0, 1));
             }
             
             // TOP & BOTTOM
@@ -102,7 +107,7 @@
                         messages.set(this.boundaries.T, []);
                     }
                     messages.get(this.boundaries.T).push(
-                        new Message(this.boundaries.T, row_len - 1, y, 1))
+                        new Point(row_len - 1, y, 1));
                 }
                 else if (this.values[row_len - 2][y] === 1)
                 {
@@ -110,7 +115,7 @@
                         messages.set(this.boundaries.B, []);
                     }
                     messages.get(this.boundaries.B).push(
-                        new Message(this.boundaries.B, 0, y, 1));
+                        new Point(0, y, 1));
                 }
             }
             
@@ -123,7 +128,7 @@
                         messages.set(this.boundaries.L, []);
                     }
                     messages.get(this.boundaries.L).push(
-                        new Message(this.boundaries.L, x, col_len - 1, 1));
+                        new Point(x, col_len - 1, 1));
                 }
                 else if (this.values[x][col_len - 2] === 1)
                 {
@@ -131,7 +136,7 @@
                         messages.set(this.boundaries.R, []);
                     }
                     messages.get(this.boundaries.R).push(
-                        new Message(this.boundaries.R, x, 0, 1));
+                        new Point(x, 0, 1));
                 }
             }
             

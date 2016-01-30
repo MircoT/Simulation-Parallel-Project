@@ -23,14 +23,14 @@ describe('Grid', function() {
                 
                 assert.strictEqual(messages.size, 3);
                 assert.lengthOf(messages.get(boundaries.TL), 1);
-                assert.strictEqual(messages.get(boundaries.TL)[0].point.x, num_rows + 1);
-                assert.strictEqual(messages.get(boundaries.TL)[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.get(boundaries.TL)[0].x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.TL)[0].y, num_cols + 1);
                 assert.lengthOf(messages.get(boundaries.T), 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.y, 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].y, 1);
                 assert.lengthOf(messages.get(boundaries.L), 1);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.x, 1);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].x, 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].y, num_cols + 1);
 
             });
             it('Top Right (random)', function () {
@@ -48,14 +48,14 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 3);
                 assert.lengthOf(messages.get(boundaries.TR), 1);
-                assert.strictEqual(messages.get(boundaries.TR)[0].point.x, num_rows + 1);
-                assert.strictEqual(messages.get(boundaries.TR)[0].point.y, 0);
+                assert.strictEqual(messages.get(boundaries.TR)[0].x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.TR)[0].y, 0);
                 assert.lengthOf(messages.get(boundaries.T), 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.y, num_cols);
+                assert.strictEqual(messages.get(boundaries.T)[0].x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].y, num_cols);
                 assert.lengthOf(messages.get(boundaries.R), 1);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.x, 1);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
+                assert.strictEqual(messages.get(boundaries.R)[0].x, 1);
+                assert.strictEqual(messages.get(boundaries.R)[0].y, 0);
         
             });
             it('Bottom Left (random)', function () { 
@@ -73,14 +73,14 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 3);
                 assert.lengthOf(messages.get(boundaries.BL), 1);
-                assert.strictEqual(messages.get(boundaries.BL)[0].point.x, 0);
-                assert.strictEqual(messages.get(boundaries.BL)[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.get(boundaries.BL)[0].x, 0);
+                assert.strictEqual(messages.get(boundaries.BL)[0].y, num_cols + 1);
                 assert.lengthOf(messages.get(boundaries.B), 1);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.y, 1);
+                assert.strictEqual(messages.get(boundaries.B)[0].x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].y, 1);
                 assert.lengthOf(messages.get(boundaries.L), 1);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.x, num_rows);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].x, num_rows);
+                assert.strictEqual(messages.get(boundaries.L)[0].y, num_cols + 1);
         
             });
             it('Bottom Right (random)', function () {
@@ -98,14 +98,14 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 3);
                 assert.lengthOf(messages.get(boundaries.BR), 1);
-                assert.strictEqual(messages.get(boundaries.BR)[0].point.x, 0);
-                assert.strictEqual(messages.get(boundaries.BR)[0].point.y, 0);
+                assert.strictEqual(messages.get(boundaries.BR)[0].x, 0);
+                assert.strictEqual(messages.get(boundaries.BR)[0].y, 0);
                 assert.lengthOf(messages.get(boundaries.B), 1);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.y, num_cols);
+                assert.strictEqual(messages.get(boundaries.B)[0].x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].y, num_cols);
                 assert.lengthOf(messages.get(boundaries.R), 1);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.x, num_rows);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
+                assert.strictEqual(messages.get(boundaries.R)[0].x, num_rows);
+                assert.strictEqual(messages.get(boundaries.R)[0].y, 0);
         
             });
             it('Top (random)', function () {
@@ -125,8 +125,8 @@ describe('Grid', function() {
                 
                 assert.strictEqual(messages.size, 1);
                 assert.lengthOf(messages.get(boundaries.T), 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.x, num_rows + 1);
-                assert.strictEqual(messages.get(boundaries.T)[0].point.y, point.y);
+                assert.strictEqual(messages.get(boundaries.T)[0].x, num_rows + 1);
+                assert.strictEqual(messages.get(boundaries.T)[0].y, point.y);
             });
             it('Bottom (random)', function () {
                 var boundaries = {
@@ -145,8 +145,8 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 1);
                 assert.lengthOf(messages.get(boundaries.B), 1);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.x, 0);
-                assert.strictEqual(messages.get(boundaries.B)[0].point.y, point.y);
+                assert.strictEqual(messages.get(boundaries.B)[0].x, 0);
+                assert.strictEqual(messages.get(boundaries.B)[0].y, point.y);
             });
             it('Left (random)', function () { 
                 var boundaries = {
@@ -165,8 +165,8 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 1);
                 assert.lengthOf(messages.get(boundaries.L), 1);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.x, point.x);
-                assert.strictEqual(messages.get(boundaries.L)[0].point.y, num_cols + 1);
+                assert.strictEqual(messages.get(boundaries.L)[0].x, point.x);
+                assert.strictEqual(messages.get(boundaries.L)[0].y, num_cols + 1);
             });
             it('Right (random)', function () {
                 var boundaries = {
@@ -185,8 +185,8 @@ describe('Grid', function() {
 
                 assert.strictEqual(messages.size, 1);
                 assert.lengthOf(messages.get(boundaries.R), 1);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.x, point.x);
-                assert.strictEqual(messages.get(boundaries.R)[0].point.y, 0);
+                assert.strictEqual(messages.get(boundaries.R)[0].x, point.x);
+                assert.strictEqual(messages.get(boundaries.R)[0].y, 0);
             });
         });
     });
