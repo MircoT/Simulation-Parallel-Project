@@ -8,7 +8,7 @@ var gofl = require('../gofl_parallel.js');
 describe('Grid', function() {
     describe('Messages', function() {
         describe('Edges Scan', function () {
-            it('Top Left (random)', function () {
+            it('Top Left (random matrix size)', function () {
                 var boundaries = {
                     TL: Math.round(Math.random()* (10 - 0) + 0),
                     T: Math.round(Math.random()* (20 - 11) + 11),
@@ -33,7 +33,7 @@ describe('Grid', function() {
                 assert.strictEqual(messages.get(boundaries.L)[0].y, num_cols + 1);
 
             });
-            it('Top Right (random)', function () {
+            it('Top Right (random matrix size)', function () {
                 var boundaries = {
                     T: Math.round(Math.random()* (10 - 0) + 0),
                     TR: Math.round(Math.random()* (20 - 11) + 11),
@@ -58,7 +58,7 @@ describe('Grid', function() {
                 assert.strictEqual(messages.get(boundaries.R)[0].y, 0);
         
             });
-            it('Bottom Left (random)', function () { 
+            it('Bottom Left (random matrix size)', function () { 
                 var boundaries = {
                     L: Math.round(Math.random()* (10 - 0) + 0),
                     BL: Math.round(Math.random()* (20 - 11) + 11),
@@ -83,7 +83,7 @@ describe('Grid', function() {
                 assert.strictEqual(messages.get(boundaries.L)[0].y, num_cols + 1);
         
             });
-            it('Bottom Right (random)', function () {
+            it('Bottom Right (random matrix size)', function () {
                 var boundaries = {
                     R: Math.round(Math.random()* (10 - 0) + 0),
                     B: Math.round(Math.random()* (20 - 11) + 11),
@@ -225,7 +225,7 @@ describe('Grid', function() {
                     rnd_values[x] = new Array(12);
                     for (var y = 0; y !== rnd_values[x].length; ++y)
                     {   
-                        if (y > 0 && x > 0 || y < rnd_values[x].length && x < rnd_values.length - 1)
+                        if (y > 0 && x > 0 && y < rnd_values[x].length - 1 && x < rnd_values.length - 1)
                         {
                             var tmp = Math.round(Math.random()*1);
                             rnd_values[x][y] = tmp;

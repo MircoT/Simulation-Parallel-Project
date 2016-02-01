@@ -40,18 +40,125 @@
              */
             this.boundaries = boundaries || {};
             this.history = new Map([[0, []]]);
-            this.boundary_history = new Map([[0, []]]);
-            this.message_sent = new Map();
+            /**
+             * history of the grid
+             * (time) => {
+             *             sender: id,
+             *             time: time,
+             *             tick: time,
+             *             points: [point list]
+             *           }
+             */
+            this.boundary_history = new Map();
+            /**
+             * history of messages sent
+             * (time) => (receiver) => [point list]
+             */
+            this.messages_sent = new Map();
             this.time = 0;
             this.worker_id = worker_id || -1;
         }
 
         /**
-         * Send all given messages
+         * Change the internal status reading the message
+         */
+        processMessage(message)
+        {   
+            if (!this.boundary_history.has(message.time))
+            {
+                this.boundary_history.set(message.time, new Map());
+            }
+            if (!this.boundary_history.get(message.time).has(message.sender))
+            {
+                this.boundary_history.get(message.time).set(message.sender, message);
+                this.go(message.time);
+            }
+            else
+            {
+                if (this.boundary_history.get(message.time).get(message.sender).tick < message.tick)
+                {
+                    this.boundary_history.get(message.time).set(message.sender, message);
+                    this.go(message.time);
+                }
+            }
+            return this.time;
+        }
+
+        /**
+         * Send all given messages at the current time
          */
         sendMessages(messages)
         {
-            
+            messages.forEach((point_list, receiver, map) =>
+            {
+                if (!this.messages_sent.has(this.time))
+                {
+                    this.messages_sent.set(this.time, new Map());
+                }
+                if (!this.messages_sent.get(this.time).has(receiver))
+                {
+                    this.messages_sent.get(this.time).set(receiver, point_list);
+                    process.send(
+                        {
+                            sender: this.worker_id,
+                            receiver: receiver,
+                            time: this.time,
+                            tick: Date.now(),
+                            points: point_list
+                        }
+                    );
+                }
+                else
+                {   
+                    let isIn = function(elm)
+                    {   
+                        return (prev, curr) =>
+                        {
+                            if (curr.x === elm.x &&
+                                curr.y === elm.y &&
+                                curr.value === elm.valu)
+                                    return prev || true;
+                            return prev || false;
+                        };
+                    };
+
+                    // Check if there are some differences
+                    let diff = false;
+
+                    // Different length
+                    if (point_list.length !== 0 && 
+                        this.messages_sent.get(this.time).get(receiver).length !== point_list.length)
+                            diff = true;
+
+                    if (!diff)
+                    {   
+                        // Different elements
+                        for (let tmp_point of this.messages_sent.get(this.time).get(receiver))
+                        {   
+                            if (!point_list.filter(isIn(tmp_point), false))
+                            {
+                                diff = true;
+                            }
+                        }
+                    }
+                    
+                    // Send only if there are differences
+                    if (diff)
+                    {   
+                        this.messages_sent.get(this.time).set(receiver, point_list);
+                        process.send(
+                            {
+                                sender: this.worker_id,
+                                receiver: receiver,
+                                time: this.time,
+                                tick: Date.now(),
+                                points: point_list
+                            }
+                        );
+                    }
+                }
+            });
+            return this;
         }
         
         /**
@@ -109,7 +216,7 @@
                     messages.get(this.boundaries.T).push(
                         new Point(row_len - 1, y, 1));
                 }
-                else if (this.values[row_len - 2][y] === 1)
+                if (this.values[row_len - 2][y] === 1)
                 {
                     if (!messages.has(this.boundaries.B)) {
                         messages.set(this.boundaries.B, []);
@@ -130,7 +237,7 @@
                     messages.get(this.boundaries.L).push(
                         new Point(x, col_len - 1, 1));
                 }
-                else if (this.values[x][col_len - 2] === 1)
+                if (this.values[x][col_len - 2] === 1)
                 {
                     if (!messages.has(this.boundaries.R)) {
                         messages.set(this.boundaries.R, []);
@@ -139,18 +246,20 @@
                         new Point(x, 0, 1));
                 }
             }
-            
             return messages;
         }
         
         /**
          * Update the grid to the given time
          */
-        go(new_time) {
+        go(new_time)
+        {
             if (this.time < new_time)
             {
                 while (this.time < new_time)
                 {   
+                    // Load boundaries
+                    this.updateBoundaries();
                     // Update grid and go to nex time
                     this.update();
                     this.time++;
@@ -170,6 +279,8 @@
                     }
                     this.time--;
                 }
+                // Update boundaries at current time
+                this.updateBoundaries();  
                 // Delete all history after current time
                 for (let key of this.history.keys())
                 {   
@@ -178,6 +289,11 @@
                         this.history.delete(key);
                     }
                 }
+            }
+            else
+            {
+                // Update boundaries at current time
+                this.updateBoundaries();  
             }
             
             return this;
@@ -189,17 +305,48 @@
          */
         update()
         {   
-            this.history.set(this.time + 1, []);
+            let nextTime = this.time + 1;
+            this.history.set(nextTime, []);
             for (let x=1; x != this.values.length - 1; ++x)
             {
                 for (let y=1; y != this.values[x].length - 1; ++y)
                 {
                     let tmp_next = this.getNext(x, y);
                     if (this.values[x][y] !== tmp_next)
-                        this.history.get(this.time + 1).push({'x': x, 'y': y, 'new': tmp_next, 'old': this.values[x][y]});
+                        this.history.get(nextTime).push({'x': x, 'y': y, 'new': tmp_next, 'old': this.values[x][y]});
                 }
             }
             return this;
+        }
+
+        /**
+         * Update the boundaries of current time
+         */
+        updateBoundaries()
+        {
+            // Set boundaries to 0
+            for (let y=0; y != this.values[0].length; ++y)
+            {
+                this.values[0][y] = 0;
+                this.values[this.values.length - 1][y] = 0;
+            }
+            for (let x=0; x != this.values.length - 1; ++x)
+            {
+                this.values[x][0] = 0;
+                this.values[x][this.values[x].length - 1] = 0;
+            }
+            // Check boundaries with history of current time
+            if (this.boundary_history.has(this.time))
+            {   
+                this.boundary_history.get(this.time).forEach(
+                    (message, sender) => {
+                        for (let point of message.points)
+                        {   
+                            this.values[point.x][point.y] = point.value;
+                        }
+                    }
+                );
+            }
         }
         
         /**
@@ -237,7 +384,7 @@
          */
         gridToString()
         {   
-            let header = []
+            let header = [];
             let result = "";
             let length_str = -1;
             for (let y=0; y != this.values[0].length; ++y) 
@@ -265,6 +412,39 @@
             header.splice(header.length, 0, '|');
             header.splice(-2, 0, '|');
             result = header.join(' ') + '\n' + '-'.repeat(length_str) + '\n' + result;
+            return result;
+        }
+
+        /**
+         * Convert the object to string
+         */
+        toString()
+        {
+            let result = `====== time: ${this.time} ======\n`;
+            result += this.gridToString();
+            result += "====== history ======\n";
+            this.history.forEach((value, key) => {
+                result += `• ${key} (tot:${value.length})=> ${value.map((item) => { return JSON.stringify(item); })}\n`;
+            });
+            result += "====== boundary history ======\n";
+            this.boundary_history.forEach((sender_map, time) => {
+                result += `• [${time}]⤸\n`;
+                sender_map.forEach((message, sender) =>
+                    {
+                        result += `  ◦ from[${message.sender}] (${message.points.length})-> ${JSON.stringify(message.points)}\n`;
+                    }
+                );
+            });
+            result += "====== time messages sent ======\n";
+            this.messages_sent.forEach((sender_map, time) => {
+                result += `• [${time}]⤸\n`;
+                sender_map.forEach((points, receiver) =>
+                    {
+                        result += `  ◦ to[${receiver}] (${points.length})-> ${JSON.stringify(points)}\n`;
+                    }
+                );
+            });
+            result += '_'.repeat(28);
             return result;
         }
         
