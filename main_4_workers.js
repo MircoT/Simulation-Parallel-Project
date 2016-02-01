@@ -8,7 +8,7 @@
     // Time interval of the main function of the workers
     const TIME_INTERVAL = 0;
     // Number of workers
-    const NUM_WORKERS = 1;
+    const NUM_WORKERS = 4;
 
     if (cluster.isMaster)
     {
@@ -25,18 +25,56 @@
         }
 
         let initial_params = [
+            // Worker 1
             {   
                 x: 6,
                 y: 6,
                 boundaries: {
-                    TL: 1,
-                    T: 1,
-                    TR: 1,
+                   TL: 4,
+                    T: 3,
+                    L: 2,
+                    R: 2,
+                    B: 3,
+                    BR: 4
+                }
+            },
+            // Worker 2
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 4,
+                    TR: 3,
                     L: 1,
                     R: 1,
-                    BL: 1,
-                    B: 1,
-                    BR: 1
+                    BL: 3,
+                    B: 4
+                }
+            },
+            // Worker 3
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 1,
+                    TR: 2,
+                    L: 4,
+                    R: 4,
+                    BL: 2,
+                    B: 1
+                }
+            },
+            // Worker 4
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    T: 2,
+                    TL: 1,
+                    L: 3,
+                    R: 3,
+                    BR: 1,
+                    B: 2
                 }
             }
         ];
@@ -45,18 +83,17 @@
         // send initial state to workers
         for(let id in cluster.workers)
         {   
+            // Send initial params
+            cluster.workers[id].send(
+                {
+                    start_params: initial_params[parseInt(id) - 1]
+                }
+            );
             // Set on message function
             cluster.workers[parseInt(id)].on('message', (msg) =>
                 {
                     console.log(`MASTER received => ${JSON.stringify(msg)}`);
                     message_queue.unshift(msg);
-                }
-            );
-
-            // Send initial params
-            cluster.workers[id].send(
-                {
-                    start_params: initial_params[parseInt(id) - 1]
                 }
             );
         }
@@ -127,7 +164,7 @@
             
         } ;  
 
-        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL);    
+        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL + 150);    
 
         process.on('SIGINT', () => {
             console.log("\n<===== Caught interrupt signal =====>");
@@ -170,17 +207,20 @@
                     //     .setPoint(3, 3, 1)
                     //     .setPoint(2, 3, 1);
                     // Glider bottom right
-                    grid.setPoint(4, 5, 1)
-                        .setPoint(6, 4, 1)
-                        .setPoint(6, 5, 1)
-                        .setPoint(6, 6, 1)
-                        .setPoint(5, 6, 1);
+                    if (cluster.worker.id === 1)
+                    {
+                         grid.setPoint(4, 5, 1)
+                            .setPoint(6, 4, 1)
+                            .setPoint(6, 5, 1)
+                            .setPoint(6, 6, 1)
+                            .setPoint(5, 6, 1);
+                    }
                     grid.go(cur_time);
-                    let sent_messages = grid.sendMessages(grid.scanEdges());
+                    grid.sendMessages(grid.scanEdges());
                     console.log(grid.toString());
                     process.send(
                         {
-                            ack: !sent_messages,
+                            ack: true,
                             worker_id: cluster.worker.id
                         }
                     );
@@ -191,11 +231,14 @@
                     console.log(`------------------------------ !!!!!!!!!! ROLLBACK TO -> (${cur_msg.data.time}) !!!!!!!!!! ------------------------------`);
                     cur_time = grid.processMessage(cur_msg.data);
                     grid.go(cur_time);
-                    let sent_messages = grid.sendMessages(grid.scanEdges());
-                    console.log(grid.toString());
+                    grid.sendMessages(grid.scanEdges());
+                    if (cluster.worker.id === 4)
+                    {
+                        console.log(grid.toString());
+                    }
                     process.send(
                         {
-                            ack: !sent_messages,
+                            ack: true,
                             worker_id: cluster.worker.id
                         }
                     );
@@ -206,17 +249,14 @@
                     console.log(`<======================================== Go -> (${cur_time}) ========================================>`);
                     cur_time = cur_msg.time;
                     grid.go(cur_time);
-                    let sent_messages = grid.sendMessages(grid.scanEdges());
-                    console.log(grid.toString());
+                    grid.sendMessages(grid.scanEdges());
+                    if (cluster.worker.id === 4)
+                    {
+                        console.log(grid.toString());
+                    }
                     process.send(
                         {
                             ack: true,
-                            worker_id: cluster.worker.id
-                        }
-                    );
-                    process.send(
-                        {
-                            ack: !sent_messages,
                             worker_id: cluster.worker.id
                         }
                     );
@@ -235,41 +275,3 @@
         setInterval(main_loop, TIME_INTERVAL);
     }
 })();
-/*
-const gofl = require('./gofl_parallel.js');
-grid = new gofl.Grid(
-    6,
-    6,
-    1,
-    {
-        TL: 1,
-        T: 1,
-        TR: 1,
-        L: 1,
-        R: 1,
-        BL: 1,
-        B: 1,
-        BR: 1
-    }
-);
-
-grid.setPoint(4, 5, 1)
-    .setPoint(6, 4, 1)
-    .setPoint(6, 5, 1)
-    .setPoint(6, 6, 1)
-    .setPoint(5, 6, 1);
-console.log(grid.toString());
-grid.scanEdges().forEach((point_list, receiver) =>
-    {   
-        grid.processMessage({
-            sender: 1,
-            receiver: receiver,
-            time: grid.time,
-            tick: Date.now(),
-            points: point_list
-        });
-    }
-);
-console.log(grid.toString());
-grid.go(1);
-console.log(grid.toString());*/
