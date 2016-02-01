@@ -15,7 +15,9 @@
         console.log("<===== I am master =====>");
 
         let cur_time = 0;
-        let works = new Array(NUM_WORKERS).fill(false);
+        let work_start = new Array(NUM_WORKERS).fill(false);
+        let work_go = new Array(NUM_WORKERS).fill(true);
+        let work_rollback = new Array(NUM_WORKERS).fill(true);
         let message_queue = [];
 
         // Create workers
@@ -109,9 +111,17 @@
             if (message_queue.length > 0)
             {
                 let cur_msg = message_queue.pop();
-                if (cur_msg.hasOwnProperty('ack'))
+                if (cur_msg.hasOwnProperty('ack_start'))
                 {
-                    works[cur_msg.worker_id - 1] = cur_msg.ack;
+                    work_start[cur_msg.worker_id - 1] = cur_msg.ack_start;
+                }
+                else if (cur_msg.hasOwnProperty('ack_go'))
+                {
+                    work_go[cur_msg.worker_id - 1] = cur_msg.ack_go;
+                }
+                else if (cur_msg.hasOwnProperty('ack_rollback'))
+                {
+                    work_rollback[cur_msg.worker_id - 1] = cur_msg.ack_rollback;
                 }
                 else
                 {
@@ -119,7 +129,7 @@
                     {
                         if (cur_msg.receiver === parseInt(id))
                         {   
-                            works[parseInt(id) - 1] = false;
+                            work_rollback[parseInt(id) - 1] = false;
                             cluster.workers[parseInt(id)].send(
                                 {
                                    data: cur_msg 
@@ -132,13 +142,17 @@
             // ----- Main procedure -----
             else
             {   
-                if (works.reduce(all_done, true) === true)
+                if (
+                    work_start.reduce(all_done, true) === true &&
+                    work_go.reduce(all_done, true) === true &&
+                    work_rollback.reduce(all_done, true) === true
+                   )
                 {
                     if (cur_time <= MAX_TIME)
                     {
                         for(let id in cluster.workers)
                         {   
-                            works[parseInt(id) - 1] = false;
+                            work_go[parseInt(id) - 1] = false;
                             // Send initial params
                             cluster.workers[parseInt(id)].send(
                                 {
@@ -164,7 +178,7 @@
             
         } ;  
 
-        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL + 150);    
+        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL);    
 
         process.on('SIGINT', () => {
             console.log("\n<===== Caught interrupt signal =====>");
@@ -220,7 +234,7 @@
                     console.log(grid.toString());
                     process.send(
                         {
-                            ack: true,
+                            ack_start: true,
                             worker_id: cluster.worker.id
                         }
                     );
@@ -238,7 +252,7 @@
                     }
                     process.send(
                         {
-                            ack: true,
+                            ack_rollback: true,
                             worker_id: cluster.worker.id
                         }
                     );
@@ -256,7 +270,7 @@
                     }
                     process.send(
                         {
-                            ack: true,
+                            ack_go: true,
                             worker_id: cluster.worker.id
                         }
                     );
