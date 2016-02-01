@@ -1,231 +1,262 @@
-'use strict';
-const cluster = require('cluster');
-const http = require('http');
+(function() {
+    'use strict';
+    const gofl = require('./gofl_parallel.js');
+    const cluster = require('cluster');
 
-class Message {
-    constructor (sender, time, point) {
-        this.sender = sender;
-        this.data = {
-            'time': time,
-            'point': point
-        }
-    }
-}
+     // Max time of the simulation
+    const MAX_TIME = parseInt(process.argv[2]) || 12;
+    // Time interval of the main function of the workers
+    const TIME_INTERVAL = 0;
+    // Number of workers
+    const NUM_WORKERS = 1;
 
-class Grid {
-    constructor(x, y) {
-        this.values = [];
-        for (let i = 0; i != y + 2; ++i) {
-            this.values[i] = new Array(x + 2).fill(0);
+    if (cluster.isMaster)
+    {
+        console.log("<===== I am master =====>");
+
+        let cur_time = 0;
+        let works = new Array(NUM_WORKERS).fill(false);
+        let message_queue = [];
+
+        // Create workers
+        for(var i = 0; i != NUM_WORKERS; ++i)
+        {
+            cluster.fork();
         }
-        this.history = new Map();
-        this.time = 0;
-    }
-    
-    createMessages(processId) {
-        let message_list = [];
-        for (let x=1; x != this.values.length - 1; ++x) {
-            for (let y=1; y != this.values[x].length - 1; ++y) {
-                if (this.values[x][y] === 1) {
-                    if (x === 1 || y === 1 || x === this.values.length - 2 || y === this.values[x].length - 2)
-                        message_list.push(new Message(processId, this.time, {'x': x, 'y': y, 'value': 1}));
+
+        let initial_params = [
+            {   
+                x: 6,
+                y: 6,
+                boundaries: {
+                    TL: 1,
+                    T: 1,
+                    TR: 1,
+                    L: 1,
+                    R: 1,
+                    BL: 1,
+                    B: 1,
+                    BR: 1
                 }
             }
+        ];
+
+        // Assign on message function and
+        // send initial state to workers
+        for(let id in cluster.workers)
+        {   
+            // Set on message function
+            cluster.workers[parseInt(id)].on('message', (msg) =>
+                {
+                    console.log(`MASTER received => ${JSON.stringify(msg)}`);
+                    message_queue.unshift(msg);
+                }
+            );
+
+            // Send initial params
+            cluster.workers[id].send(
+                {
+                    start_params: initial_params[parseInt(id) - 1]
+                }
+            );
         }
-        return message_list;
-    }
-    
-    update() {
-        if (!this.history.has(this.time + 1)) {
-            this.history.set(this.time + 1, []);
-        }
-        for (let x=1; x != this.values.length - 1; ++x) {
-            for (let y=1; y != this.values[x].length - 1; ++y) {
-                let tmp_next = this.next(x, y);
-                if (this.values[x][y] !== tmp_next) {
-                    let inserted = false;
-                    for (let item of this.history.get(this.time + 1)) {
-                        if (item.old === undefined && item.x === x && item.y === y) {
-                            inserted = true;
-                            item.old = this.values[x][y];
+
+        let all_done = (prev, cur) =>
+        {
+            return prev && cur;
+        };
+
+        let main_loop = () =>
+        {   
+            // ----- Handle message -----
+            if (message_queue.length > 0)
+            {
+                let cur_msg = message_queue.pop();
+                if (cur_msg.hasOwnProperty('ack'))
+                {
+                    works[cur_msg.worker_id - 1] = cur_msg.ack;
+                }
+                else
+                {
+                    for(let id in cluster.workers)
+                    {
+                        if (cur_msg.receiver === parseInt(id))
+                        {   
+                            works[parseInt(id) - 1] = false;
+                            cluster.workers[parseInt(id)].send(
+                                {
+                                   data: cur_msg 
+                                }
+                            );
                         }
                     }
-                    if (!inserted)
-                        this.history.get(this.time + 1).push({'x': x, 'y': y, 'new': tmp_next, 'old': this.values[x][y]});
                 }
             }
-        }
-        for (let item of this.history.get(this.time + 1)) {
-            if (item.old === undefined) {
-                item.old = this.values[item.x][item.y];
-            }
-        }
-        //console.log(this.history)
-        this.timeWarp(this.time + 1);
-    }
-    
-    backToTheFuture(new_time, point) {
-        if (this.time <= new_time) {
-            if (!this.history.has(new_time)) {
-                this.history.set(new_time, []);
-            }
-            let inserted = false;
-            for (let item of this.history.get(new_time)) {
-                if (item.x === point.x && item.y === point.y) {
-                    inserted = true;
-                    item.new = point.value;
+            // ----- Main procedure -----
+            else
+            {   
+                if (works.reduce(all_done, true) === true)
+                {
+                    if (cur_time <= MAX_TIME)
+                    {
+                        for(let id in cluster.workers)
+                        {   
+                            works[parseInt(id) - 1] = false;
+                            // Send initial params
+                            cluster.workers[parseInt(id)].send(
+                                {
+                                    time: cur_time
+                                }
+                            );
+                        }
+                        cur_time++;
+                    }
+                    else
+                    {
+                        clearInterval(main_loop_ref);
+                        for (let id in cluster.workers) {
+                            cluster.workers[id].kill();
+                            console.log(`-> Worker ${id} killed...`);
+                        }
+                        
+                        console.log("<===== Exit done =====>");
+                        process.exit(0);
+                    }
                 }
             }
-            if (!inserted)
-                this.history.get(new_time).push({'x': point.x, 'y': point.y, 'new': point.value, 'old': undefined})
-            console.log("HERe", new_time, this.history.get(new_time))
-        }
-        else {
-            this.timeWarp(new_time);
-            for (let item of this.history.get(new_time)) {
-                if (item.x === point.x && item.y === point.y) {
-                    inserted = true;
-                    item.new = point.value;
+            
+        } ;  
+
+        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL);    
+
+        process.on('SIGINT', () => {
+            console.log("\n<===== Caught interrupt signal =====>");
+
+            
+        });
+    }
+    else if (cluster.isWorker)
+    {   
+        console.log(`<===== I am worker num ${cluster.worker.id} =====>`);
+
+        let message_queue = [];
+        let grid = null;
+        let cur_time = 0;
+
+        let main_loop = () =>
+        {   
+            if (message_queue.length > 0)
+            {   
+                let cur_msg = message_queue.pop();
+                // ----- Handle message -----
+                if (cur_msg.hasOwnProperty('start_params'))
+                {
+                    grid = new gofl.Grid(
+                        cur_msg.start_params.x,
+                        cur_msg.start_params.y,
+                        cluster.worker.id,
+                        cur_msg.start_params.boundaries
+                    );
+                    // // Glider top left
+                    // grid.setPoint(1, 2, 1)
+                    //     .setPoint(3, 1, 1)
+                    //     .setPoint(3, 2, 1)
+                    //     .setPoint(3, 3, 1)
+                    //     .setPoint(2, 3, 1);
+                    // Glider bottom right
+                    grid.setPoint(4, 5, 1)
+                        .setPoint(6, 4, 1)
+                        .setPoint(6, 5, 1)
+                        .setPoint(6, 6, 1)
+                        .setPoint(5, 6, 1);
+                    grid.sendMessages(grid.scanEdges());
+                    grid.go(cur_time);
+                }
+                // ----- Rollback -----
+                else if (cur_msg.hasOwnProperty('data'))
+                {   
+                    console.log(`------------------------------ !!!!!!!!!! ROLLBACK TO -> (${cur_msg.data.time}) !!!!!!!!!! ------------------------------`);
+                    cur_time = grid.processMessage(cur_msg.data);
+                    grid.go(cur_time);
+                    let sent_messages = grid.sendMessages(grid.scanEdges());
+                    console.log(grid.toString());
+                    process.send(
+                        {
+                            ack: !sent_messages,
+                            worker_id: cluster.worker.id
+                        }
+                    );
+                }
+                // ----- Main procedure -----
+                else if (cur_msg.hasOwnProperty('time'))
+                {   
+                    console.log(`<======================================== Go -> (${cur_time}) ========================================>`);
+                    cur_time = cur_msg.time;
+                    grid.go(cur_time);
+                    let sent_messages = grid.sendMessages(grid.scanEdges());
+                    console.log(grid.toString());
+                    process.send(
+                        {
+                            ack: true,
+                            worker_id: cluster.worker.id
+                        }
+                    );
+                    process.send(
+                        {
+                            ack: !sent_messages,
+                            worker_id: cluster.worker.id
+                        }
+                    );
                 }
             }
-        }
-    }
-    
-    timeWarp(new_time) {
-        if (this.time < new_time) {
-            while (this.time < new_time) {
-                for (let action of this.history.get(this.time + 1)) {
-                    this.setPoint(action.x, action.y, action.new);
-                }
-                this.time++;
+            
+        };
+
+        process.on('message',(msg) => 
+            {   
+                console.log(`Worker ${cluster.worker.id} received => ${JSON.stringify(msg)}`);
+                message_queue.unshift(msg);
             }
-        }
-        else if (this.time > new_time) {
-            while (this.time > new_time) {
-                for (let action of this.history[this.time]) {
-                    this.setPoint(action.x, action.y, action.old);
-                }
-                this.history.delete(this.time);
-                this.time--;
-            }
-        }
-    }
-    
-    next(x, y) {
-        var count = 0;
-        if (this.values[x-1][y] === 1) count++;
-        if (this.values[x-1][y+1] === 1) count++;
-        if (this.values[x-1][y-1] === 1) count++;
-        if (this.values[x+1][y] === 1) count++;
-        if (this.values[x+1][y+1] === 1) count++;
-        if (this.values[x+1][y-1] === 1) count++;
-        if (this.values[x][y+1] === 1) count++;
-        if (this.values[x][y-1] === 1) count++;
+        );
 
-        if (this.values[x][y] === 1) {
-            if (count < 2 || count > 3) return 0;
-            else return 1;
-        }
-        else if (this.values[x][y] === 0 && count === 3) {
-            return 1;
-        }
-        else {
-            return 0;
-        }
+        setInterval(main_loop, TIME_INTERVAL);
     }
-    
-    /**
-     * Set a point of the grid with a specific value.
-     * This method returns the object for use chaining.
-     */
-    setPoint(x, y, value) {
-        this.values[x][y] = value;
-        return this;
+})();
+/*
+const gofl = require('./gofl_parallel.js');
+grid = new gofl.Grid(
+    6,
+    6,
+    1,
+    {
+        TL: 1,
+        T: 1,
+        TR: 1,
+        L: 1,
+        R: 1,
+        BL: 1,
+        B: 1,
+        BR: 1
     }
-    
-    /**
-     * Convert to string the grid.
-     * The result includes the boundaries.
-     */
-    toString() {
-        let result = `====== time: ${this.time} ======\n`;
-        for (let x=0; x != this.values.length; ++x) {
-            let tmp = this.values[x].map((value) => { return (value === 0) ? '·' : 'X'; });
-            tmp.splice(1, 0, '|');
-            tmp.splice(-1, 0, '|')
-            result += tmp.join(" ");
-            if (x === 0 || x === this.values.length - 2) {
-                result += '\n';
-                result += '-'.repeat(tmp.join(" ").length);
-            }
-            result += '\n';
-        }
-        return result;
+);
+
+grid.setPoint(4, 5, 1)
+    .setPoint(6, 4, 1)
+    .setPoint(6, 5, 1)
+    .setPoint(6, 6, 1)
+    .setPoint(5, 6, 1);
+console.log(grid.toString());
+grid.scanEdges().forEach((point_list, receiver) =>
+    {   
+        grid.processMessage({
+            sender: 1,
+            receiver: receiver,
+            time: grid.time,
+            tick: Date.now(),
+            points: point_list
+        });
     }
-}
-
-const MAX_TIME = 6;
-
-if (cluster.isMaster) {
-
-  for (let i = 0; i < 2; i++) {
-    cluster.fork();
-  }
-  
-  for (let id in cluster.workers) {
-    cluster.workers[id].on('message', (msg) => {
-        console.log('received', msg)
-    });  
-  }
-  
-  process.on('SIGINT', () => {
-    console.log("Caught interrupt signal!");
-
-    for (let id in cluster.workers) {
-        cluster.workers[id].kill();
-    }
-    
-    process.exit(0);
-  });
-
-  
-} else if (cluster.isWorker) {
-    console.log(`I am worker #${cluster.worker.id}`);
-    
-    var grid = new Grid(8, 6);
-    grid.setPoint(1, 2, 1)
-        .setPoint(3, 1, 1)
-        .setPoint(3, 2, 1)
-        .setPoint(3, 3, 1)
-        .setPoint(2, 3, 1)
-        /*.setPoint(1, 5, 1)
-        .setPoint(6, 5, 1)
-        .setPoint(6, 1, 1)*/;
-    console.log(grid.toString());
-    
-    function main_loop() {
-        if (grid.time < MAX_TIME) {
-            grid.update();
-            for (let message of grid.createMessages()) {
-                console.log(message);
-                process.send(message);
-            }
-            console.log(grid.toString());
-        }
-        else {
-            clearInterval(main_loop_reference);
-            /*grid.timeWarp(0);
-            console.log(grid.toString());*/
-        }
-    }
-    
-    var main_loop_reference = setInterval(main_loop, 25);
-    
-    process.on('message', (msg) => {
-        console.log(`I am worker #${cluster.worker.id} and I have received ${JSON.stringify(msg)}`);
-        clearInterval(main_loop_reference);
-        grid.backToTheFuture(msg.time, msg.point);
-        console.log("HERE\n", grid.toString());
-        main_loop_reference = setInterval(main_loop, 0);
-    });
-}
+);
+console.log(grid.toString());
+grid.go(1);
+console.log(grid.toString());*/

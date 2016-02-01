@@ -89,6 +89,7 @@
          */
         sendMessages(messages)
         {
+            let sent = false;
             messages.forEach((point_list, receiver, map) =>
             {
                 if (!this.messages_sent.has(this.time))
@@ -107,6 +108,7 @@
                             points: point_list
                         }
                     );
+                    sent = true;
                 }
                 else
                 {   
@@ -155,10 +157,11 @@
                                 points: point_list
                             }
                         );
+                        sent = true;
                     }
                 }
             });
-            return this;
+            return sent;
         }
         
         /**
