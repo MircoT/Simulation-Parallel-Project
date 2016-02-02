@@ -1,6 +1,7 @@
 (function ()
 {
     'use strict';
+    const fs = require('fs');
     
     Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };
 
@@ -449,6 +450,37 @@
             });
             result += '_'.repeat(28);
             return result;
+        }
+
+        /**
+         * Print into a file in JSON format the current state without boundaries
+         */
+        gridToFile() {
+            try {
+                fs.lstatSync(`out`).isDirectory();
+            } catch(e) {
+            if ( e.code == 'ENOENT')
+                fs.mkdirSync(`out`);
+            }
+            try {
+                fs.lstatSync(`out/${this.worker_id}`).isDirectory();
+            } catch(e) {
+            if ( e.code == 'ENOENT')
+                fs.mkdirSync(`out/${this.worker_id}`);
+            }
+
+            let result = [];
+            for (let x = 1; x != this.values.length - 1; ++x) {
+                result.push([]);
+                for (let y = 1; y != this.values[x].length - 1; ++y) {
+                    result[x - 1][y - 1] = (this.values[x][y]);
+                }
+            }
+            fs.writeFileSync(`out/${this.worker_id}/${this.time}.json`, JSON.stringify(
+                {
+                    data: result
+                }
+            ));
         }
         
         /**

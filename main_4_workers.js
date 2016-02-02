@@ -232,6 +232,7 @@
                     grid.go(cur_time);
                     grid.sendMessages(grid.scanEdges());
                     console.log(grid.toString());
+                    grid.gridToFile();
                     process.send(
                         {
                             ack_start: true,
@@ -246,10 +247,8 @@
                     cur_time = grid.processMessage(cur_msg.data);
                     grid.go(cur_time);
                     grid.sendMessages(grid.scanEdges());
-                    if (cluster.worker.id === 4)
-                    {
-                        console.log(grid.toString());
-                    }
+                    console.log(grid.toString());
+                    grid.gridToFile();
                     process.send(
                         {
                             ack_rollback: true,
@@ -264,10 +263,8 @@
                     cur_time = cur_msg.time;
                     grid.go(cur_time);
                     grid.sendMessages(grid.scanEdges());
-                    if (cluster.worker.id === 4)
-                    {
-                        console.log(grid.toString());
-                    }
+                    console.log(grid.toString());
+                    grid.gridToFile();
                     process.send(
                         {
                             ack_go: true,

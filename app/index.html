@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hello World!</title>
+  </head>
+  <body style="text-align: center;">
+    <h1>GofL - Simulator</h1>
+    <div>
+        <canvas id="myCanvas" width="400" height="400"
+            style="border:1px solid #000000;"></canvas>
+    </div>
+    <div>
+        <h3 id='current_history'>0</h3>
+        <input id="history" type="range" value="0" min="0" max="36" step="1" oninput="changeHistory()" />
+    </div>
+    <div>
+        <button onclick="openFiles();">Load</button>
+    </div>
+  </body>
+  <script>
+    (function()
+    {
+        'use strict';
+        const fs = require('fs');
+
+        var final_matrix = [];
+        var size = Math.round(400 / 12);
+
+        var canvas = document.getElementById("myCanvas");
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle="#3399ff";
+
+        const MAX_STEPS = 36;
+
+        window.changeHistory = function()
+        {
+            let step = document.getElementById('history').value;
+            document.getElementById('current_history').innerHTML = step;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let x=0; x != final_matrix[step].length; ++x)
+            {
+                for (let y=0; y != final_matrix[step][x].length; ++y)
+                {   
+                    // console.log(final_matrix[2][x])
+                    if (final_matrix[step][x][y] === 1)
+                        ctx.fillRect(y * size, x * size, size, size);
+                }
+            }
+        };
+        
+        window.openFiles = function()
+        {    
+            let matrixs = [];
+            for (let worker = 1; worker <= 4; ++worker)
+            {   
+                matrixs[worker-1] = [];
+                for (let step = 0; step <= MAX_STEPS; ++step)
+                {   
+                    matrixs[worker-1][step] = JSON.parse(fs.readFileSync(`./out/${worker}/${step}.json`)).data;
+                }
+            }
+
+            for (let step = 0; step <= MAX_STEPS; ++step)
+            {
+                final_matrix[step] = [];
+                for (let row = 0; row != 6; ++row)
+                {   
+                    final_matrix[step][row] = matrixs[0][step][row].concat(matrixs[1][step][row]);
+                }
+                for (let row = 0; row != 6; ++row)
+                {   
+                    final_matrix[step][row + 6] = matrixs[2][step][row].concat(matrixs[3][step][row]);
+                } 
+            }
+            
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+
+            for (let x=0; x != final_matrix[0].length; ++x)
+            {
+                for (let y=0; y != final_matrix[0][x].length; ++y)
+                {   
+                    if (final_matrix[0][x][y] === 1)
+                        ctx.fillRect(y * size, x * size, size, size);
+                }
+            }
+
+        };
+        
+    })();
+    
+  	
+  </script>
+</html>

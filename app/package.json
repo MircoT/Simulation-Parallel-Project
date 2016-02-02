@@ -1,0 +1,8 @@
+{
+  "name": "GofL-Sim",
+  "main": "index.html",
+  "window": {
+  	"min_width": 500,
+    "min_height": 800
+  }
+}
