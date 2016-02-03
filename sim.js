@@ -83,9 +83,9 @@
     if(
         !isInt(rows) || rows <= 0 ||
         !isInt(columns) || columns <= 0 ||
-        !isInt(workers_x_row) || workers_x_row <= 0 ||
-        !isInt(workers_x_column) || workers_x_column <= 0 ||
-        !isInt(MAX_TIME) || MAX_TIME <= 0
+        !isInt(workers_x_row) || workers_x_row <= 1 ||
+        !isInt(workers_x_column) || workers_x_column <= 1 ||
+        !isInt(MAX_TIME) || MAX_TIME < 0
       )
     {
         console.log(usage_text);

@@ -21,7 +21,7 @@ An example of use:
 node ./sim.js 6 6 3 3 64 initial_params.json
 ```
 
-**NOTE**: *initial_params.json* is included in the repository.
+**NOTE**: *initial_params.json* is included in the repository as example.
 
 ### Use the viewer
 

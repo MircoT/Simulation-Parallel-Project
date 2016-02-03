@@ -4,6 +4,7 @@
         "module": "commonjs"
     },
     "files": [
-        "main_2.js"
+        "sim.js",
+        "gofl_parallel.js"
     ]
 }

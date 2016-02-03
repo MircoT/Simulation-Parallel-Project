@@ -5,9 +5,9 @@
 			"name": "Launch",
 			"type": "node",
 			"request": "launch",
-			"program": "main.js",
+			"program": "sim",
 			"stopOnEntry": false,
-			"args": [],
+			"args": [6, 6, 3, 3, 64, "initial_params.json"],
 			"cwd": ".",
 			"runtimeExecutable": null,
 			"runtimeArgs": [
