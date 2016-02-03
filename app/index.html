@@ -1,36 +1,172 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Hello World!</title>
+    <title>GofL Parallel Simulator Viewer</title>
+    <style>
+      #holder { 
+        border: 10px dashed #ccc; 
+        width: 300px; 
+        height: 300px; 
+        margin: 20px auto;
+    }
+      #holder.hover { 
+        border: 10px dashed #333; 
+    }
+      canvas {
+        border:1px solid #555555;
+        box-shadow: 0px 1px 3px #999999;
+      }
+      body {
+        padding-top: 10%;
+        text-align: center;
+      }
+      input {
+        width: 400px;
+      }
+    </style>
   </head>
-  <body style="text-align: center;">
-    <h1>GofL - Simulator</h1>
-    <div>
-        <canvas id="myCanvas" width="400" height="400"
-            style="border:1px solid #000000;"></canvas>
+  <body>
+    <div id="holder-container">
+        <div id="holder"></div>
+        <h2>Drag above your result folder...</h2>
     </div>
-    <div>
-        <h3 id='current_history'>0</h3>
-        <input id="history" type="range" value="0" min="0" max="36" step="1" oninput="changeHistory()" />
+    <div id="canvas-container"></div>
+    <div id="controls-container">
+        <div><h3 id='current_history'>0</h3></div>
+        <div><input id="history" type="range" value="0" min="0" max="36" step="1" oninput="changeHistory()" /></div>
+        <div><button onclick="reset();">Reset</button></div>
     </div>
-    <div>
-        <button onclick="openFiles();">Load</button>
-    </div>
+    
   </body>
   <script>
-    (function()
+
+    //Same as $(document).ready();
+    function ready(fn) {
+        if (document.readyState != 'loading'){
+          fn();
+        } else {
+          document.addEventListener('DOMContentLoaded', fn);
+        }
+    }
+
+    //When the page has loaded, run this code
+    ready(function()
     {
         'use strict';
         const fs = require('fs');
-
+        
         var final_matrix = [];
-        var size = Math.round(400 / 12);
+        var size_x = 0;
+        var size_y = 0;
 
-        var canvas = document.getElementById("myCanvas");
-        var ctx = canvas.getContext("2d");
-        ctx.fillStyle="#3399ff";
+        var canvas = null;
+        var ctx = null;
 
-        const MAX_STEPS = 36;
+        // prevent default behavior from changing page on dropped file
+        window.ondragover = function(e) { e.preventDefault(); return false };
+        window.ondrop = function(e) { e.preventDefault(); return false };
+
+        window.reset = function()
+        {
+            showCanvas(false);
+            final_matrix = [];
+            size_x = 0;
+            size_y = 0;
+            canvas = null;
+            ctx = null;
+        }
+
+        function prepare(num_rows, num_cols, steps)
+        {
+            final_matrix = [];
+            size_x = Math.round(400 / num_cols);
+            size_y = Math.round(400 / num_rows);
+
+            let canvas_container = document.getElementById("canvas-container");
+            while (canvas_container.hasChildNodes()) {   
+                canvas_container.removeChild(canvas_container.firstChild);
+            }
+            canvas = document.createElement("CANVAS");
+            canvas.setAttribute('id', "myCanvas");
+            canvas.setAttribute('width', 400);
+            canvas.setAttribute('height', 400);
+            canvas_container.appendChild(canvas);  
+
+            ctx = canvas.getContext("2d");
+            ctx.fillStyle="#0089DD";
+
+            let history = document.getElementById("history")
+            history.setAttribute("max", steps);
+            history.value = 0;
+        }
+
+        function showCanvas(show)
+        {
+            document.getElementById('canvas-container').style.display = (show) ? "block" : "none";
+            document.getElementById('controls-container').style.display = (show) ? "block" : "none";
+            document.getElementById('holder-container').style.display = (!show) ? "block" : "none";
+            document.getElementById('holder').className = '';
+        }
+
+        var holder = document.getElementById('holder');
+        holder.ondragover = function () {
+            this.className = 'hover'; return false;
+        };
+        holder.ondragleave = function () {
+            this.className = ''; return false;
+        };
+        holder.ondrop = function (e) {
+            e.preventDefault();
+
+            if (e.dataTransfer.files.length > 1)
+            {
+                document.getElementById('holder').className = '';
+                alert("Too much files grabbed...");
+            }
+            else
+            {
+                if (fs.lstatSync(e.dataTransfer.files[0].path).isDirectory())
+                {
+                    let folder = e.dataTransfer.files[0].path;
+                    try
+                    {
+                        if (fs.lstatSync(folder + "/conf.json").isFile())
+                        {
+                            let properties = JSON.parse(fs.readFileSync(folder + "/conf.json"))
+                            prepare(
+                                properties.rows,
+                                properties.cols,
+                                properties.steps
+                            );
+                            openFiles(
+                                folder,
+                                properties.steps,
+                                properties.rows,
+                                properties.cols,
+                                properties.workers_x_row,
+                                properties.workers_x_column
+                            );
+                            showCanvas(true);
+                        }
+                    }
+                    catch(e)
+                    {   
+                        document.getElementById('holder').className = '';
+                        if (e.code === "ENOENT")
+                            alert("This folner doesn't contain results or results are broken...");
+                        throw e;
+                    }
+                }
+                else
+                {   
+                    document.getElementById('holder').className = '';
+                    alert("You can drop only a folder...")
+                }
+            }
+            return false;
+        };
+
+        
 
         window.changeHistory = function()
         {
@@ -42,39 +178,42 @@
             {
                 for (let y=0; y != final_matrix[step][x].length; ++y)
                 {   
-                    // console.log(final_matrix[2][x])
                     if (final_matrix[step][x][y] === 1)
-                        ctx.fillRect(y * size, x * size, size, size);
+                        ctx.fillRect(y * size_y, x * size_x, size_y, size_x);
                 }
             }
         };
         
-        window.openFiles = function()
+        function openFiles(folder, tot_steps, rows, cols, worker_rows, worker_columns)
         {    
             let matrixs = [];
-            for (let worker = 1; worker <= 4; ++worker)
+            for (let worker = 1; worker <= (worker_rows*worker_columns); ++worker)
             {   
                 matrixs[worker-1] = [];
-                for (let step = 0; step <= MAX_STEPS; ++step)
+                for (let step = 0; step <= tot_steps; ++step)
                 {   
-                    matrixs[worker-1][step] = JSON.parse(fs.readFileSync(`./out/${worker}/${step}.json`)).data;
+                    matrixs[worker-1][step] = JSON.parse(fs.readFileSync(`${folder}/${worker}/${step}.json`)).data;
                 }
             }
 
-            for (let step = 0; step <= MAX_STEPS; ++step)
+            let rows_x_worker = Math.floor(rows / worker_rows);
+
+            console.log(matrixs)
+
+            for (let step = 0; step <= tot_steps; ++step)
             {
                 final_matrix[step] = [];
-                for (let row = 0; row != 6; ++row)
+                for (let cur_row=0; cur_row != rows; ++cur_row)
                 {   
-                    final_matrix[step][row] = matrixs[0][step][row].concat(matrixs[1][step][row]);
+                    final_matrix[step][cur_row] = [];
+                    for (let cur_column_worker=0; cur_column_worker != worker_columns; ++cur_column_worker)
+                    {
+                        let worker_id = cur_column_worker + Math.floor(cur_row / rows_x_worker) * worker_rows;
+                        final_matrix[step][cur_row] = final_matrix[step][cur_row].concat(matrixs[worker_id][step][cur_row % rows_x_worker]);
+                    }
                 }
-                for (let row = 0; row != 6; ++row)
-                {   
-                    final_matrix[step][row + 6] = matrixs[2][step][row].concat(matrixs[3][step][row]);
-                } 
             }
-            
-
+      
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
 
@@ -83,14 +222,17 @@
                 for (let y=0; y != final_matrix[0][x].length; ++y)
                 {   
                     if (final_matrix[0][x][y] === 1)
-                        ctx.fillRect(y * size, x * size, size, size);
+                        ctx.fillRect(y * size_y, x * size_x, size_y, size_x);  // x and y are inverted
                 }
             }
 
         };
+
+        // Initial state
+        showCanvas(false);
         
-    })();
+    });
     
-  	
+    
   </script>
 </html>

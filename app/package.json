@@ -1,8 +1,13 @@
 {
-  "name": "GofL-Sim",
   "main": "index.html",
+  "name": "GofL-Sim",
   "window": {
-  	"min_width": 500,
-    "min_height": 800
+  	"title": "GofL Parallel Simulator Viewer",
+  	"toolbar": false,
+  	"width": 700,
+  	"height": 650,
+  	"min_width": 700,
+    "min_height": 650,
+    "icon": "glider.png"
   }
 }
