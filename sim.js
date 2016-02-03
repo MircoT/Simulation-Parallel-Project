@@ -11,9 +11,9 @@
 |
 |    - rows: number of rows per worker (integer > 0)
 |    - cols: number of columns per worker (integer > 0)
-|    - wXrow: number of workers in a row (integer > 0)
-|    - wXcol: number of workers in a column (integer > 0)
-|    - steps: number of steps of the simulation (integer > 0)
+|    - wXrow: number of workers in a row (integer >= 2)
+|    - wXcol: number of workers in a column (integer >= 2)
+|    - steps: number of steps of the simulation (integer >= 0)
 |    - params: initial params for each worker (JSON file path)
 |
 |  The result will be stored in the current working directory
