@@ -28,7 +28,9 @@ node ./sim.js 6 6 3 3 64 initial_params.json
 To run the viewver you have to install [NW.js](http://nwjs.io/) for your platform, then you can simply run it like that:
 ```bash
 cd app
-nwjs .
+/path/to/nw .
 ```
 
 After that you can drag the *out* folder, with your result and see what happened.
+
+**NOTE**: If you need more information about how using *NW.js* check the [documentation](http://docs.nwjs.io/en/v0.13.0-beta5/For%20Users/Getting%20Started/#getting-started-with-nwjs).
