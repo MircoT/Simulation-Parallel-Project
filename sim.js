@@ -3,18 +3,19 @@
     const gofl = require('./gofl_parallel.js');
     const cluster = require('cluster');
 
-    const usage_text = `===== !!! Wrong arguments !!! =====
+    const usage_text = `=====-
 |
 |  Usage:
 |
 |    node sim.js rows cols wXrow wXcol steps params [-v]
 |
-|    - rows: number of rows per worker (integer > 0)
-|    - cols: number of columns per worker (integer > 0)
-|    - wXrow: number of workers in a row (integer >= 2)
-|    - wXcol: number of workers in a column (integer >= 2)
-|    - steps: number of steps of the simulation (integer >= 0)
-|    - params: initial params for each worker (JSON file path)
+|    * rows  : number of rows per worker (integer > 0)
+|    * cols  : number of columns per worker (integer > 0)
+|    * wXrow : number of workers in a row (integer >= 2)
+|    * wXcol : number of workers in a column (integer >= 2)
+|    * steps : number of steps of the simulation (integer >= 0)
+|    * params: initial params for each worker (JSON file path)
+|    * -v    : verbose output
 |
 |  The result will be stored in the current working directory
 |  inside the folder named 'out'.
