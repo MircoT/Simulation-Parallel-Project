@@ -2,6 +2,11 @@
 
 The project have to simulate the "Game of life automata" in a grid where the workers comunicate by messages.
 
+This project was tested with:
+
+* [nodejs](https://nodejs.org/en/) v5.5.0
+* [nw.js](http://nwjs.io/) v0.12.3 (needed by the viewver)
+
 ### Test module
 
 ```bash
@@ -25,7 +30,7 @@ node ./sim.js 6 6 3 3 64 initial_params.json
 
 ### Use the viewer
 
-To run the viewver you have to install [NW.js](http://nwjs.io/) for your platform, then you can simply run it like that:
+To run the viewver you have to install [nw.js](http://nwjs.io/) for your platform, then you can simply run it like that:
 ```bash
 cd app
 /path/to/nw .
@@ -33,4 +38,4 @@ cd app
 
 After that you can drag the *out* folder, with your result and see what happened.
 
-**NOTE**: If you need more information about how using *NW.js* check the [documentation](http://docs.nwjs.io/en/v0.13.0-beta5/For%20Users/Getting%20Started/#getting-started-with-nwjs).
+**NOTE**: If you need more information about how using *nw.js* check the [documentation](http://docs.nwjs.io/en/v0.13.0-beta5/For%20Users/Getting%20Started/#getting-started-with-nwjs).
