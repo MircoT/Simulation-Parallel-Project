@@ -1,6 +1,7 @@
 (function() {
     'use strict';
-    const gofl = require('./gofl_parallel.js');
+    const GofL = require('./gofl_parallel.js');
+    const barriers = require('./barriers.js');
     const cluster = require('cluster');
 
     const usage_text = `=====-
@@ -22,7 +23,7 @@
 |
 |  The folder and his contents will be overwritten.
 |
-=====-`
+=====-`;
 
     // Time interval of the main function of the processes
     const TIME_INTERVAL = 0;
@@ -40,8 +41,9 @@
         }
         x = parseFloat(value);
         return (x | 0) === x;
-    }
+    };
 
+    // ----- Start parsing arguments -----
     let args = process.argv.slice(2);
     if ((args.length === 1 && (args[0] === "--help" || args[0] === "-h")) ||
          args.length < 6)
@@ -79,8 +81,9 @@
         console.log(usage_text);
         process.exit(0);
     }
+    // ----- End parsing arguments -----
 
-    // Check args
+    // ----- Checking arguments -----
     if(
         !isInt(rows) || rows <= 0 ||
         !isInt(columns) || columns <= 0 ||
@@ -93,6 +96,7 @@
         process.exit(0);
     }
 
+    // ----- Prepare environment -----
     let NUM_WORKERS = workers_x_row * workers_x_column;
 
     let initial_params = [];
@@ -129,7 +133,7 @@
             }
         );
         return result;
-    }
+    };
 
     for (let cur_worker=1; cur_worker <= NUM_WORKERS; ++cur_worker)
     {   
@@ -143,7 +147,7 @@
                 R: configuration.get(coords.row).get((coords.col + 1).mod(workers_x_column)),
                 B: configuration.get((coords.row + 1).mod(workers_x_row)).get(coords.col)
             }
-        }
+        };
         
         if ( (coords.row === 0 && coords.col === 0) ||
              (coords.row === workers_x_row - 1 && coords.col === workers_x_column - 1)
@@ -212,6 +216,7 @@
         initial_params.push(cur_params);
     }
 
+    // ----- Starting simulation -----
     if (cluster.isMaster)
     {   
         if (LOG)
@@ -223,7 +228,7 @@
             'steps': MAX_TIME,
             'workers_x_row': workers_x_row,
             'workers_x_column': workers_x_column
-        }
+        };
 
         let loading = ["\\", "|", "/", "–"];
 
@@ -241,10 +246,14 @@
 -> steps: ${MAX_TIME}`);
 
         let cur_time = 0;
-        let work_start = new Array(NUM_WORKERS).fill(false);
-        let work_go = new Array(NUM_WORKERS).fill(true);
-        let work_rollback = new Array(NUM_WORKERS).fill(true);
-        let work_done = new Array(NUM_WORKERS).fill(false);
+
+        // Create barriers
+        var barrier_manager = new barriers.BarrierMngr();
+        barrier_manager.add('work_start', NUM_WORKERS, false);
+        barrier_manager.add('work_go', NUM_WORKERS, true);
+        barrier_manager.add('work_rollback', NUM_WORKERS, true);
+        barrier_manager.add('work_done', NUM_WORKERS, false);
+
         let message_queue = [];
 
         // Create workers
@@ -273,16 +282,6 @@
             );
         }
 
-        let all_done = (prev, cur) =>
-        {
-            return prev && cur;
-        };
-
-        let all_false = (prev, cur) =>
-        {
-            return prev || cur;
-        };
-
         let main_loop = () =>
         {   
             // Show loading
@@ -296,19 +295,19 @@
                 let cur_msg = message_queue.pop();
                 if (cur_msg.hasOwnProperty('ack_start'))
                 {
-                    work_start[cur_msg.worker_id - 1] = cur_msg.ack_start;
+                    barrier_manager.set('work_start', cur_msg.worker_id - 1, cur_msg.ack_start);
                 }
                 else if (cur_msg.hasOwnProperty('ack_go'))
                 {
-                    work_go[cur_msg.worker_id - 1] = cur_msg.ack_go;
+                    barrier_manager.set('work_go', cur_msg.worker_id - 1, cur_msg.ack_go);
                 }
                 else if (cur_msg.hasOwnProperty('ack_rollback'))
-                {
-                    work_rollback[cur_msg.worker_id - 1] = cur_msg.ack_rollback;
+                {   
+                    barrier_manager.set('work_rollback', cur_msg.worker_id - 1, cur_msg.ack_rollback);
                 }
                 else if (cur_msg.hasOwnProperty('ack_done'))
                 {
-                    work_done[cur_msg.worker_id - 1] = cur_msg.ack_done;
+                    barrier_manager.set('work_done', cur_msg.worker_id - 1, cur_msg.ack_done);
                 }
                 else
                 {
@@ -316,7 +315,7 @@
                     {
                         if (cur_msg.receiver === parseInt(id))
                         {   
-                            work_rollback[parseInt(id) - 1] = false;
+                            barrier_manager.set('work_rollback', parseInt(id) - 1, false);
                             cluster.workers[parseInt(id)].send(
                                 {
                                    data: cur_msg 
@@ -330,16 +329,18 @@
             else
             {   
                 if (
-                    work_start.reduce(all_done, true) === true &&
-                    work_go.reduce(all_done, true) === true &&
-                    work_rollback.reduce(all_done, true) === true
+                    barrier_manager.all_true([
+                        'work_start',
+                        'work_go',
+                        'work_rollback'
+                    ])
                    )
                 {
                     if (cur_time <= MAX_TIME)
                     {
                         for(let id in cluster.workers)
                         {   
-                            work_go[parseInt(id) - 1] = false;
+                            barrier_manager.set('work_go', parseInt(id) - 1, false);
                             // Send initial params
                             cluster.workers[parseInt(id)].send(
                                 {
@@ -351,7 +352,7 @@
                     }
                     else
                     {   
-                        if (work_done.reduce(all_false, false) === false)
+                        if (barrier_manager.not.all_false(['work_done']))
                         {
                             for(let id in cluster.workers)
                             {   
@@ -363,7 +364,7 @@
                                 );
                             }
                         }
-                        else if (work_done.reduce(all_done, true) === true)
+                        else if (barrier_manager.all_true(['work_done']))
                         {
                             clearInterval(main_loop_ref);
                             console.log("<===== !!!!! All jobs done !!!!! =====>");
@@ -412,7 +413,7 @@
                 // ----- Handle message -----
                 if (cur_msg.hasOwnProperty('start_params'))
                 {
-                    grid = new gofl.Grid(
+                    grid = new GofL.Grid(
                         cur_msg.start_params.rows,
                         cur_msg.start_params.columns,
                         cluster.worker.id,
