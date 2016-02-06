@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Simulation - Project</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/white.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+		<style type="text/css">
+			img {
+				border: none !important;
+				box-shadow: 0px 2px 5px #555555 !important;
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<h1>Simulazione</h1>
+					<h3>Progetto gestione dei serventi in parallelo</h3>
+					<p>
+						<small>Creato da<a href="https://github.com/Gabriele91">Gabriele Di Bari</a> / <a href="https://github.com/MircoT">Mirco Tracolli</a></small>
+					</p>
+				</section>
+
+				<section>
+					<h2>Descrizione</h2>
+					<p>
+						Il progetto riguarda l'implementazione del <i>Gioco della vita</i> con divisione della griglia in sotto griglie processate da più lavoratori.
+					</p>
+				</section>
+
+				<section>
+					<h2>Implementation</h2>
+					<p>
+						Abbiamo scelto una implementazione di tipo master/slave, dove il master cordina i vari lavoratori (slave) con l'ausilio di messaggi.
+					</p>
+				</section>
+
+				<section>
+					<h2>Griglia locale</h2>
+					<p>
+						<img width="400" height="400" data-src="img/worker_grid.png" alt="Worker grid">
+						<p>Ogni lavoratore ha la propria griglia ed un bordo, che rappresenta il confine.</p>
+					</p>
+				</section>
+
+				<section>
+					<h2>Griglia globale</h2>
+					<p>
+						<img width="400" height="400" data-src="img/grid_example.png" alt="Grid">
+						<p>Ogni lavoratore ha al più 8 vicini.</p>
+					</p>
+				</section>
+
+				<section>
+					<h2>Griglia circolare</h2>
+					<p>
+						<img width="auto" height="400" data-src="img/torus.png" alt="Grid">
+						<p>La griglia (se abilitata la modalità circolare) la si può rappresentare come un toroide.</p>
+					</p>
+				</section>
+
+				<section>
+					<h2>Linea del tempo</h2>
+					<p>
+						<img width="auto" height="512" data-src="img/timeline.png" alt="Grid">						
+					</p>
+				</section>
+
+				<section>
+					<h2>Risultati</h2>
+					<p>
+						Il ritulato, per ogni lavoratore, viene memorizzato in una cartelle al cui interno vengono scritti tutti gli stati della simulazione.
+					</p>
+				</section>
+
+				<section>
+					<h2>Visualizzatore</h2>
+					<p>
+						Per capire, umanamente, il risultato della compuazione si è scritto un visualizzatore che usa l'ambiente <a href="http://nwjs.io/">NW.js</a>.		
+					</p>
+				</section>
+
+				<section data-background-video="video/Viewer.mp4,Viewer.webm" data-background-color="#000000">
+				</section>
+
+				<section style="text-align: left;">
+					<h1>FINE</h1>
+					<p>
+						- Si veda <a href="https://github.com/MircoT/Simulation-Parallel-Project/blob/master/README.md">README</a> per maggiori  informazioni.
+					</p>
+				</section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
