@@ -8,7 +8,7 @@
 |
 |  Usage:
 |
-|    node sim.js rows cols wXrow wXcol steps params [-v]
+|    node sim.js rows cols wXrow wXcol steps params [-v] [--no-files]
 |
 |    * rows  : number of rows per worker (integer > 0)
 |    * cols  : number of columns per worker (integer > 0)
@@ -30,6 +30,7 @@
     const fs = require('fs');
 
     var LOG = false;
+    var NO_FILES = false;
 
     Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };
 
@@ -52,16 +53,23 @@
         process.exit(0);
     }
 
-    if (args.length === 7 && args[6] === "-v")
-    {
-        if (args[6] !== "-v")
+    if (args.length >= 7)
+    {   
+        for (let index = 6; index !== args.length; ++index)
         {
-            console.log(usage_text);
-            process.exit(0); 
-        }
-        else
-        {
-            LOG = true;
+            if (args[index] !== "-v" && args[index] !== "--no-files")
+            {
+                console.log(usage_text);
+                process.exit(0); 
+            }
+            if (args[index] === "-v")
+            {
+                LOG = true;
+            }
+            else if (args[index] === "--no-files")
+            {
+                NO_FILES = true;
+            }
         }
     }
     
@@ -362,14 +370,19 @@
                             clearInterval(main_loop_ref);
 
                             let end_time = Date.now();
-                            try {
-                                fs.lstatSync(`out`).isDirectory();
-                            } catch(e) {
-                            if ( e.code == 'ENOENT')
-                                fs.mkdirSync(`out`);
-                            }
                             package_conf.time_elapsed = (end_time - start_time) / 1000;
-                            fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
+
+                            if (!NO_FILES)
+                            {
+                                try {
+                                    fs.lstatSync(`out`).isDirectory();
+                                } catch(e) {
+                                if ( e.code == 'ENOENT')
+                                    fs.mkdirSync(`out`);
+                                }
+                                fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
+                            }
+                            
 
                             console.log("<===== !!!!! All jobs done !!!!! =====>");
                             for (let id in cluster.workers) {
@@ -435,7 +448,10 @@
                     grid.sendMessages(grid.scanEdges());
                     if (LOG)
                         console.log(grid.toString());
-                    grid.gridToFile();
+                    if (!NO_FILES)
+                    {
+                        grid.gridToFile();
+                    }
                     process.send(
                         {
                             ack_start: true,
@@ -453,7 +469,10 @@
                     grid.sendMessages(grid.scanEdges());
                     if (LOG)
                         console.log(grid.toString());
-                    grid.gridToFile();
+                    if (!NO_FILES)
+                    {
+                        grid.gridToFile();
+                    }
                     process.send(
                         {
                             ack_rollback: true,
@@ -471,7 +490,10 @@
                     grid.sendMessages(grid.scanEdges());
                     if (LOG)
                         console.log(grid.toString());
-                    grid.gridToFile();
+                    if (!NO_FILES)
+                    {
+                        grid.gridToFile();
+                    }
                     process.send(
                         {
                             ack_go: true,
