@@ -36,6 +36,7 @@
     <div id="controls-container">
         <div><h3 id='current_history'>0</h3></div>
         <div><input id="history" type="range" value="0" min="0" max="36" step="1" oninput="changeHistory()" /></div>
+        <div><h3>Computation time fo the simulation: <span id='time_elapsed'>0</span></h3></div>
         <div><button onclick="reset();">Reset</button></div>
     </div>
     
@@ -78,7 +79,7 @@
             ctx = null;
         }
 
-        function prepare(num_rows, num_cols, steps)
+        function prepare(num_rows, num_cols, steps, time_elapsed)
         {
             final_matrix = [];
             size_x = Math.round(400 / num_cols);
@@ -97,9 +98,11 @@
             ctx = canvas.getContext("2d");
             ctx.fillStyle="#0089DD";
 
-            let history = document.getElementById("history")
+            let history = document.getElementById("history");
             history.setAttribute("max", steps);
             history.value = 0;
+
+            document.getElementById("time_elapsed").innerHTML = time_elapsed.toString();
         }
 
         function showCanvas(show)
@@ -138,7 +141,8 @@
                             prepare(
                                 properties.rows,
                                 properties.cols,
-                                properties.steps
+                                properties.steps,
+                                properties.time_elapsed
                             );
                             openFiles(
                                 folder,

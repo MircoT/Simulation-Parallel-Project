@@ -221,6 +221,7 @@
     {   
         if (LOG)
             console.log("<===== I am master =====>");
+        let start_time = Date.now();
 
         let package_conf = {
             'rows': rows*workers_x_row,
@@ -231,14 +232,6 @@
         };
 
         let loading = ["\\", "|", "/", "–"];
-
-        try {
-            fs.lstatSync(`out`).isDirectory();
-        } catch(e) {
-        if ( e.code == 'ENOENT')
-            fs.mkdirSync(`out`);
-        }
-        fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
 
         console.log(`<===== Startin simulation =====>
 -> matrix: ${rows}×${columns}
@@ -367,12 +360,24 @@
                         else if (barrier_manager.all_true(['work_done']))
                         {
                             clearInterval(main_loop_ref);
+
+                            let end_time = Date.now();
+                            try {
+                                fs.lstatSync(`out`).isDirectory();
+                            } catch(e) {
+                            if ( e.code == 'ENOENT')
+                                fs.mkdirSync(`out`);
+                            }
+                            package_conf.time_elapsed = (end_time - start_time) / 1000;
+                            fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
+
                             console.log("<===== !!!!! All jobs done !!!!! =====>");
                             for (let id in cluster.workers) {
                                 cluster.workers[id].kill();
                                 console.log(`-> Worker ${id} killed...`);
                             }                           
                             console.log("<===== !!!!! Exit done !!!!! =====>");
+                            console.log(`<===== Elapsed time: ${package_conf.time_elapsed} =====>`)
                             process.exit(0);
                         }
                         
