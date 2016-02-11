@@ -95,8 +95,8 @@
         var ctx = null;
 
         // prevent default behavior from changing page on dropped file
-        window.ondragover = function(e) { e.preventDefault(); return false };
-        window.ondrop = function(e) { e.preventDefault(); return false };
+        window.ondragover = function(e) { e.preventDefault(); return false; };
+        window.ondrop = function(e) { e.preventDefault(); return false; };
 
         window.reset = function()
         {
@@ -107,7 +107,9 @@
             size_y = 0;
             canvas = null;
             ctx = null;
-        }
+            document.getElementById("history").value = 0;
+            document.getElementById('current_history').innerHTML = 0;
+        };
 
         function prepare(num_rows, num_cols, steps, time_elapsed, p_times)
         {
@@ -170,7 +172,7 @@
                     {
                         if (fs.lstatSync(folder + "/conf.json").isFile())
                         {
-                            let properties = JSON.parse(fs.readFileSync(folder + "/conf.json"))
+                            let properties = JSON.parse(fs.readFileSync(folder + "/conf.json"));
                             prepare(
                                 properties.rows,
                                 properties.cols,
@@ -200,7 +202,7 @@
                 else
                 {   
                     document.getElementById('holder').className = '';
-                    alert("You can drop only a folder...")
+                    alert("You can drop only a folder...");
                 }
             }
             return false;
@@ -265,7 +267,7 @@
                 }
             }
 
-        };
+        }
 
         // Initial state
         showCanvas(false);
