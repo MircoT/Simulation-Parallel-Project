@@ -478,7 +478,8 @@
             }
             fs.writeFileSync(`out/${this.worker_id}/${this.time}.json`, JSON.stringify(
                 {
-                    data: result
+                    data: result,
+                    time: Date.now()
                 }
             ));
         }

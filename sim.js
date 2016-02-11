@@ -230,6 +230,7 @@
         if (LOG)
             console.log("<===== I am master =====>");
         let start_time = Date.now();
+        let times = [];
 
         let package_conf = {
             'rows': rows*workers_x_row,
@@ -338,7 +339,9 @@
                    )
                 {
                     if (cur_time <= MAX_TIME)
-                    {
+                    {   
+                        times.push(Date.now() / 1000);
+
                         for(let id in cluster.workers)
                         {   
                             barrier_manager.set('work_go', parseInt(id) - 1, false);
@@ -369,8 +372,26 @@
                         {
                             clearInterval(main_loop_ref);
 
+                            console.log("<===== !!!!! All jobs done !!!!! =====>");
+                            for (let id in cluster.workers) {
+                                cluster.workers[id].kill();
+                                console.log(`-> Worker ${id} killed...`);
+                            }                           
+                            console.log("<===== !!!!! Exit done !!!!! =====>");
+
                             let end_time = Date.now();
                             package_conf.time_elapsed = (end_time - start_time) / 1000;
+                            package_conf.times = times.reduce((prev, curr, index) => {
+                                if (index === 0)
+                                {
+                                    prev.push(0.0);
+                                    return prev;
+                                }
+                                else {
+                                    prev.push(prev[index-1] + times[index] - times[index-1]);
+                                    return prev;
+                                }
+                            }, []);
 
                             if (!NO_FILES)
                             {
@@ -383,13 +404,6 @@
                                 fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
                             }
                             
-
-                            console.log("<===== !!!!! All jobs done !!!!! =====>");
-                            for (let id in cluster.workers) {
-                                cluster.workers[id].kill();
-                                console.log(`-> Worker ${id} killed...`);
-                            }                           
-                            console.log("<===== !!!!! Exit done !!!!! =====>");
                             console.log(`<===== Elapsed time: ${package_conf.time_elapsed} =====>`)
                             process.exit(0);
                         }

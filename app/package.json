@@ -5,9 +5,7 @@
   	"title": "GofL Parallel Simulator Viewer",
   	"toolbar": false,
   	"width": 700,
-  	"height": 680,
-  	"min_width": 700,
-    "min_height": 680,
+  	"height": 700,
     "icon": "glider.png"
   }
 }

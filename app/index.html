@@ -3,28 +3,47 @@
   <head>
     <title>GofL Parallel Simulator Viewer</title>
     <style>
-      #holder { 
+    #holder { 
         border: 10px dashed #ccc;
         border-radius: 5px;
         width: 300px; 
         height: 300px; 
         margin: 20px auto;
     }
-      #holder.hover { 
+    #holder.hover { 
         border: 10px dashed #333; 
         border-radius: 5px;
     }
-      canvas {
+    canvas {
         border:1px solid #555555;
         box-shadow: 0px 1px 3px #999999;
-      }
-      body {
+    }
+    body {
         padding-top: 10%;
         text-align: center;
-      }
-      input {
+    }
+    input {
         width: 400px;
-      }
+    }
+    table { 
+        color: #333333; /* Lighten up font color */
+        font-family: Helvetica, Arial, sans-serif; /* Nicer font */
+        width: 90%; 
+        border-collapse: 
+        collapse; border-spacing: 0;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+
+    td { 
+        border: 1px solid #cccccc;
+        background: #fafafa; 
+        text-align: center;
+        height: 32px;
+    }
+
     </style>
   </head>
   <body>
@@ -34,9 +53,18 @@
     </div>
     <div id="canvas-container"></div>
     <div id="controls-container">
-        <div><h3 id='current_history'>0</h3></div>
+        <div style="margin: 5px;">Step: <span id='current_history' style="font-weight: bold;">0</span></div>
         <div><input id="history" type="range" value="0" min="0" max="36" step="1" oninput="changeHistory()" /></div>
-        <div><h3>Computation time fo the simulation: <span id='time_elapsed'>0</span></h3></div>
+        <table style="width:100%">
+          <tr>
+            <td>(Tw + Ts)</td>
+            <td><span id='time' style="font-weight: bold;">0</span> sec.</td>
+          </tr>
+          <tr>         
+            <td>Sum(Tw_i + Ts_i) with i equal to num. of steps</td>
+            <td><span id='time_elapsed' style="font-weight: bold;">0</span> sec.</td>
+          </tr>
+        </table>
         <div><button onclick="reset();">Reset</button></div>
     </div>
     
@@ -59,6 +87,7 @@
         const fs = require('fs');
         
         var final_matrix = [];
+        var times = [];
         var size_x = 0;
         var size_y = 0;
 
@@ -73,13 +102,14 @@
         {
             showCanvas(false);
             final_matrix = [];
+            times = [];
             size_x = 0;
             size_y = 0;
             canvas = null;
             ctx = null;
         }
 
-        function prepare(num_rows, num_cols, steps, time_elapsed)
+        function prepare(num_rows, num_cols, steps, time_elapsed, p_times)
         {
             final_matrix = [];
             size_x = Math.round(400 / num_cols);
@@ -103,6 +133,9 @@
             history.value = 0;
 
             document.getElementById("time_elapsed").innerHTML = time_elapsed.toString();
+
+            times = p_times;
+            document.getElementById("time").innerHTML = times[0].toString();
         }
 
         function showCanvas(show)
@@ -142,7 +175,8 @@
                                 properties.rows,
                                 properties.cols,
                                 properties.steps,
-                                properties.time_elapsed
+                                properties.time_elapsed,
+                                properties.times
                             );
                             openFiles(
                                 folder,
@@ -178,6 +212,7 @@
         {
             let step = document.getElementById('history').value;
             document.getElementById('current_history').innerHTML = step;
+            document.getElementById("time").innerHTML = times[step].toString();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             for (let x=0; x != final_matrix[step].length; ++x)
@@ -203,8 +238,6 @@
             }
 
             let rows_x_worker = Math.floor(rows / worker_rows);
-
-            console.log(matrixs)
 
             for (let step = 0; step <= tot_steps; ++step)
             {
