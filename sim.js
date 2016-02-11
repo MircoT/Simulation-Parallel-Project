@@ -12,8 +12,8 @@
 |
 |    * rows  : number of rows per worker (integer > 0)
 |    * cols  : number of columns per worker (integer > 0)
-|    * wXrow : number of workers in a row (integer >= 2)
-|    * wXcol : number of workers in a column (integer >= 2)
+|    * wXrow : number of workers in a row (integer >= 1)
+|    * wXcol : number of workers in a column (integer >= 1)
 |    * steps : number of steps of the simulation (integer >= 0)
 |    * params: initial params for each worker (JSON file path)
 |    * -v    : verbose output
@@ -95,8 +95,8 @@
     if(
         !isInt(rows) || rows <= 0 ||
         !isInt(columns) || columns <= 0 ||
-        !isInt(workers_x_row) || workers_x_row <= 1 ||
-        !isInt(workers_x_column) || workers_x_column <= 1 ||
+        !isInt(workers_x_row) || workers_x_row < 1 ||
+        !isInt(workers_x_column) || workers_x_column < 1 ||
         !isInt(MAX_TIME) || MAX_TIME < 0
       )
     {
@@ -156,64 +156,83 @@
                 B: configuration.get((coords.row + 1).mod(workers_x_row)).get(coords.col)
             }
         };
-        
-        if ( (coords.row === 0 && coords.col === 0) ||
-             (coords.row === workers_x_row - 1 && coords.col === workers_x_column - 1)
+
+        if (
+                (coords.row > 0 && coords.row < workers_x_row - 1) &&
+                (coords.col > 0 && coords.col < workers_x_column - 1)
             )
         {
             cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
                                          .get((coords.col - 1).mod(workers_x_column));
+            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                         .get((coords.col + 1).mod(workers_x_column));
+            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
+                                         .get((coords.col - 1).mod(workers_x_column));
             cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));                   
+                                         .get((coords.col + 1).mod(workers_x_column));
+        }
+        if (
+                coords.row === 0 &&
+                (coords.col > 0 && coords.col < workers_x_column - 1)
+            )
+        {
+            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
+                                     .get((coords.col - 1).mod(workers_x_column));
+            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
+                                     .get((coords.col + 1).mod(workers_x_column));
         }
         else if (
-            (coords.row === 0 && coords.col === workers_x_column - 1) ||
-            (coords.row === workers_x_row - 1 && coords.col === 0)
-            )
-        {
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));                            
-        }
-        else if (coords.row === 0)
-        {
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));                            
-        }
-        else if (coords.row === workers_x_row - 1)
-        {
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));
-        }
-        else if (coords.col === 0)
-        {
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));                            
-        }
-        else if (coords.col === workers_x_column - 1)
+                    coords.row === workers_x_row - 1 &&
+                    (coords.col > 0 && coords.col < workers_x_column - 1)
+                )
         {
             cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));
+                                     .get((coords.col - 1).mod(workers_x_column));
+            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                     .get((coords.col + 1).mod(workers_x_column));
+        }
+        else if (
+                    coords.col === 0 &&
+                    (coords.row > 0 && coords.row < workers_x_row - 1)
+                )
+        {
+            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                     .get((coords.col + 1).mod(workers_x_column));
+            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
+                                     .get((coords.col + 1).mod(workers_x_column));
+        }
+        else if (
+                    coords.col === workers_x_column - 1 &&
+                    (coords.row > 0 && coords.row < workers_x_row - 1)
+                )
+        {
+            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+                                     .get((coords.col - 1).mod(workers_x_column));
             cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));                            
+                                     .get((coords.col - 1).mod(workers_x_column));
         }
         else
         {
-            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+            if (
+                    (coords.row === 0 && coords.col === 0) ||
+                    (coords.row === workers_x_row - 1 && coords.col === workers_x_column - 1)
+                )
+            {
+                cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
                                          .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
                                          .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
+            }
+            if (
+                        (coords.row === workers_x_row - 1 && coords.col === 0) ||
+                        (coords.row === 0 && coords.col === workers_x_column - 1)
+                    )
+            {
+                cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                         .get((coords.col + 1).mod(workers_x_column));
+                cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
                                          .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
+            }
         }
 
         if (workers_params.hasOwnProperty(cur_worker.toString()))
@@ -231,6 +250,7 @@
             console.log("<===== I am master =====>");
         let start_time = Date.now();
         let times = [];
+        let end_callback = false;
 
         let package_conf = {
             'rows': rows*workers_x_row,
@@ -356,7 +376,7 @@
                     }
                     else
                     {   
-                        if (barrier_manager.not.all_false(['work_done']))
+                        if (barrier_manager.not.all_false(['work_done']) && !end_callback)
                         {
                             for(let id in cluster.workers)
                             {   
@@ -367,6 +387,7 @@
                                     }
                                 );
                             }
+                            end_callback = true;
                         }
                         else if (barrier_manager.all_true(['work_done']))
                         {
@@ -497,9 +518,9 @@
                 // ----- Main procedure -----
                 else if (cur_msg.hasOwnProperty('time'))
                 {   
+                    cur_time = cur_msg.time;
                     if (LOG)
                         console.log(`<======================================== Go -> (${cur_time}) ========================================>`);
-                    cur_time = cur_msg.time;
                     grid.go(cur_time);
                     grid.sendMessages(grid.scanEdges());
                     if (LOG)
