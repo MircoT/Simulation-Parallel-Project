@@ -86,12 +86,14 @@
         'use strict';
         const fs = require('fs');
         
-        var final_matrix = [];
+        var cur_properties = {};
         var times = [];
         var size_x = 0;
         var size_y = 0;
 
         var canvas = null;
+        var canvas_width = 400;
+        var canvas_height = 400;
         var ctx = null;
 
         // prevent default behavior from changing page on dropped file
@@ -101,7 +103,7 @@
         window.reset = function()
         {
             showCanvas(false);
-            final_matrix = [];
+            cur_properties = {};
             times = [];
             size_x = 0;
             size_y = 0;
@@ -113,9 +115,13 @@
 
         function prepare(num_rows, num_cols, steps, time_elapsed, p_times)
         {
-            final_matrix = [];
-            size_x = Math.round(400 / num_cols);
-            size_y = Math.round(400 / num_rows);
+            if (num_rows > canvas_width)
+                canvas_width = num_rows;
+            if (num_cols > canvas_height)
+                canvas_height = num_cols;
+
+            size_x = Math.round(canvas_height / num_cols);
+            size_y = Math.round(canvas_width / num_rows);
 
             let canvas_container = document.getElementById("canvas-container");
             while (canvas_container.hasChildNodes()) {   
@@ -123,8 +129,8 @@
             }
             canvas = document.createElement("CANVAS");
             canvas.setAttribute('id', "myCanvas");
-            canvas.setAttribute('width', 400);
-            canvas.setAttribute('height', 400);
+            canvas.setAttribute('width', canvas_width);
+            canvas.setAttribute('height', canvas_height);
             canvas_container.appendChild(canvas);  
 
             ctx = canvas.getContext("2d");
@@ -172,22 +178,16 @@
                     {
                         if (fs.lstatSync(folder + "/conf.json").isFile())
                         {
-                            let properties = JSON.parse(fs.readFileSync(folder + "/conf.json"));
+                            cur_properties = JSON.parse(fs.readFileSync(folder + "/conf.json"));
+                            cur_properties.folder = folder;
                             prepare(
-                                properties.rows,
-                                properties.cols,
-                                properties.steps,
-                                properties.time_elapsed,
-                                properties.times
+                                cur_properties.rows,
+                                cur_properties.cols,
+                                cur_properties.steps,
+                                cur_properties.time_elapsed,
+                                cur_properties.times
                             );
-                            openFiles(
-                                folder,
-                                properties.steps,
-                                properties.rows,
-                                properties.cols,
-                                properties.workers_x_row,
-                                properties.workers_x_column
-                            );
+                            drawStep(0);
                             showCanvas(true);
                         }
                     }
@@ -215,58 +215,46 @@
             let step = document.getElementById('history').value;
             document.getElementById('current_history').innerHTML = step;
             document.getElementById("time").innerHTML = times[step].toString();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            for (let x=0; x != final_matrix[step].length; ++x)
-            {
-                for (let y=0; y != final_matrix[step][x].length; ++y)
-                {   
-                    if (final_matrix[step][x][y] === 1)
-                        ctx.fillRect(y * size_y, x * size_x, size_y, size_x);
-                }
-            }
+            drawStep(step);
         };
-        
-        function openFiles(folder, tot_steps, rows, cols, worker_rows, worker_columns)
-        {    
-            let matrixs = [];
-            for (let worker = 1; worker <= (worker_rows*worker_columns); ++worker)
+
+        function drawStep(step)
+        {   
+            let rows_x_worker = Math.floor(cur_properties.rows / cur_properties.workers_x_row);
+            let cur_step_matrix = [];
+            let cur_matrices = openFiles(step);
+
+            for (let cur_row=0; cur_row != cur_properties.rows; ++cur_row)
             {   
-                matrixs[worker-1] = [];
-                for (let step = 0; step <= tot_steps; ++step)
-                {   
-                    matrixs[worker-1][step] = JSON.parse(fs.readFileSync(`${folder}/${worker}/${step}.json`)).data;
-                }
-            }
-
-            let rows_x_worker = Math.floor(rows / worker_rows);
-
-            for (let step = 0; step <= tot_steps; ++step)
-            {
-                final_matrix[step] = [];
-                for (let cur_row=0; cur_row != rows; ++cur_row)
-                {   
-                    final_matrix[step][cur_row] = [];
-                    for (let cur_column_worker=0; cur_column_worker != worker_columns; ++cur_column_worker)
-                    {
-                        let worker_id = cur_column_worker + Math.floor(cur_row / rows_x_worker) * worker_rows;
-                        final_matrix[step][cur_row] = final_matrix[step][cur_row].concat(matrixs[worker_id][step][cur_row % rows_x_worker]);
-                    }
+                cur_step_matrix[cur_row] = [];
+                for (let cur_column_worker=0; cur_column_worker != cur_properties.workers_x_column; ++cur_column_worker)
+                {
+                    let worker_id = cur_column_worker + Math.floor(cur_row / rows_x_worker) * cur_properties.workers_x_row;
+                    cur_step_matrix[cur_row] = cur_step_matrix[cur_row].concat(cur_matrices[worker_id][step][cur_row % rows_x_worker]);
                 }
             }
       
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-
-            for (let x=0; x != final_matrix[0].length; ++x)
+            for (let x=0; x != cur_step_matrix.length; ++x)
             {
-                for (let y=0; y != final_matrix[0][x].length; ++y)
+                for (let y=0; y != cur_step_matrix[x].length; ++y)
                 {   
-                    if (final_matrix[0][x][y] === 1)
+                    if (cur_step_matrix[x][y] === 1)
                         ctx.fillRect(y * size_y, x * size_x, size_y, size_x);  // x and y are inverted
                 }
             }
-
+        }
+        
+        function openFiles(step)
+        {    
+            let matrices = [];
+            for (let worker = 1; worker <= (cur_properties.workers_x_row*cur_properties.workers_x_column); ++worker)
+            {   
+                matrices[worker-1] = [];
+                matrices[worker-1][step] = JSON.parse(fs.readFileSync(`${cur_properties.folder}/${worker}/${step}.json`)).data;
+            }
+            return matrices;
         }
 
         // Initial state
