@@ -425,7 +425,7 @@
                                 fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
                             }
                             
-                            console.log(`<===== Elapsed time: ${package_conf.time_elapsed} =====>`)
+                            console.log(`<===== Elapsed time: ${package_conf.time_elapsed} =====>`);
                             process.exit(0);
                         }
                         
@@ -539,6 +539,7 @@
                 // ----- done and exit -----
                 else if (cur_msg.hasOwnProperty('to_the_end'))
                 {
+                    clearInterval(main_loop_ref);
                     process.send(
                         {
                             ack_done: cur_msg.to_the_end,
@@ -558,6 +559,6 @@
             }
         );
 
-        setInterval(main_loop, TIME_INTERVAL);
+        let main_loop_ref = setInterval(main_loop, TIME_INTERVAL);
     }
 })();

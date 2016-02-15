@@ -1,29 +1,80 @@
 (function() {
     'use strict';
+
     const spawnSync = require('child_process').spawnSync;
+    const fs = require('fs');
 
-    let result = spawnSync("node", ["./sim.js",  "4000", "4000", "1", "1", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
+    const width = 4096;
+    const height = 4096;
+    const repetition = 2;
+    let matrix = [];
+    let tmp_params = null;
+    let result = null;
 
-    console.log(result.stdout.toString());
+    for (let x=0; x !== height; ++x)
+    {
+        matrix[x] = [];
+        for (let y=0; y !== width; ++y)
+        {
+            matrix[x][y] = Math.round(Math.random() * 1);
+        }
+    }
 
-    result = spawnSync("node", ["./sim.js",  "2000", "2000", "2", "2", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
+    function create_initial_params(workers_x_row, workers_x_col)
+    {   
+        let cells_row = height / workers_x_row;
+        let cells_col = width / workers_x_col;
+        let initial_params = {};
 
-    console.log(result.stdout.toString());
+        let configuration = [];
 
-    result = spawnSync("node", ["./sim.js",  "1000", "1000", "4", "4", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
+        for (let x=0; x !== workers_x_row; ++x)
+        {
+            configuration[x] = [];
+            for (let y=0; y !== workers_x_col; ++y)
+            {   
+                configuration[x][y] = (y + x*workers_x_col) + 1;
+            }
+        }
 
-    console.log(result.stdout.toString());
+        for (let x=0; x !== height; ++x)
+        {
+            for (let y=0; y !== width; ++y)
+            {   
+                if (matrix[x][y] === 1)
+                {   
+                    let col_index = Math.floor(y / cells_col);
+                    let row_index = Math.floor(x / cells_row);
 
-    result = spawnSync("node", ["./sim.js",  "800", "800", "5", "5", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
+                    if (!initial_params.hasOwnProperty(configuration[row_index][col_index]))
+                        initial_params[configuration[row_index][col_index]] = [];
 
-    console.log(result.stdout.toString());
+                    initial_params[configuration[row_index][col_index]].push({row: (x%cells_row)+1, col: (y%cells_col)+1, val: 1});
+                }
+            }
+        }
 
-    result = spawnSync("node", ["./sim.js",  "500", "500", "8", "8", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
+        return initial_params;
+    }
 
-    console.log(result.stdout.toString());
+    for (let cur_rep=0; cur_rep !== repetition; ++cur_rep)
+    {
+        tmp_params = create_initial_params(2, 2);
+        fs.writeFileSync("./tmp_params.json", JSON.stringify(tmp_params, null, 2));
+        result = spawnSync("node", 
+            [
+                "../sim.js",  
+                width / Math.pow(2, cur_rep), 
+                height / Math.pow(2, cur_rep), 
+                Math.pow(2, cur_rep), 
+                Math.pow(2, cur_rep), 
+                10, "tmp_params.json", 
+                "--no-files"
+            ]
+        );
+        console.log(result.stdout.toString());
+    }
 
-    result = spawnSync("node", ["./sim.js",  "400", "400", "10", "10", "100", "./initial_params.json", "--no-files"], {cwd: "../"});
-
-    console.log(result.stdout.toString());
+    fs.unlinkSync("./tmp_params.json");
 
 })();
