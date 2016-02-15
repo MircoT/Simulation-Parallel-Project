@@ -33,6 +33,7 @@ node ./sim.js 6 6 3 3 64 initial_params.json
 To run the viewver you have to install [nw.js](http://nwjs.io/) for your platform, then you can simply run it like that:
 ```bash
 cd app
+npm install
 /path/to/nw .
 ```
 
