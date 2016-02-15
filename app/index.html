@@ -177,9 +177,9 @@
                     let folder = e.dataTransfer.files[0].path;
                     try
                     {
-                        if (fs.lstatSync(folder + "/conf.json").isFile())
+                        if (fs.lstatSync(`${folder}/conf.json`).isFile())
                         {
-                            cur_properties = JSON.parse(fs.readFileSync(folder + "/conf.json"));
+                            cur_properties = JSON.parse(fs.readFileSync(`${folder}/conf.json`));
                             cur_properties.folder = folder;
                             cur_properties.isZip = false;
                             prepare(
@@ -261,7 +261,7 @@
             let rows_x_worker = Math.floor(cur_properties.rows / cur_properties.workers_x_row);
             let cur_step_matrix = [];
             let cur_matrices = openFiles(step);
-
+            
             for (let cur_row=0; cur_row != cur_properties.rows; ++cur_row)
             {   
                 cur_step_matrix[cur_row] = [];
