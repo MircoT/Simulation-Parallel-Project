@@ -49,7 +49,7 @@
   <body>
     <div id="holder-container">
         <div id="holder"></div>
-        <h2>Drag above your result folder...</h2>
+        <h2>Drag above your result folder or a zip file...</h2>
     </div>
     <div id="canvas-container"></div>
     <div id="controls-container">
@@ -85,6 +85,7 @@
     {
         'use strict';
         const fs = require('fs');
+        const AdmZip = require('adm-zip');
         
         var cur_properties = {};
         var times = [];
@@ -180,6 +181,7 @@
                         {
                             cur_properties = JSON.parse(fs.readFileSync(folder + "/conf.json"));
                             cur_properties.folder = folder;
+                            cur_properties.isZip = false;
                             prepare(
                                 cur_properties.rows,
                                 cur_properties.cols,
@@ -197,6 +199,42 @@
                         if (e.code === "ENOENT")
                             alert("This folner doesn't contain results or results are broken...");
                         throw e;
+                    }
+                }
+                else if (fs.lstatSync(e.dataTransfer.files[0].path).isFile() && 
+                    e.dataTransfer.files[0].path.indexOf('.zip') === e.dataTransfer.files[0].path.length - 4)
+                {
+                    let zip = new AdmZip(e.dataTransfer.files[0].path);
+                    let folderBaseName = e.dataTransfer.files[0].name.split('.zip')[0];
+                    let conf_exist = false;
+
+                    zip.getEntries().forEach(function(zipEntry) {
+                        //console.log(zipEntry.toString()); // outputs zip entries information
+                        if (zipEntry.entryName === `${folderBaseName}/conf.json`) {
+                            conf_exist = true;
+                        }
+                    });
+
+                    if (conf_exist)
+                    {
+                        cur_properties = JSON.parse(zip.readAsText(`${folderBaseName}/conf.json`));
+                        cur_properties.folder = folderBaseName;
+                        cur_properties.zip = zip;
+                        cur_properties.isZip = true;
+                        prepare(
+                            cur_properties.rows,
+                            cur_properties.cols,
+                            cur_properties.steps,
+                            cur_properties.time_elapsed,
+                            cur_properties.times
+                        );
+                        drawStep(0);
+                        showCanvas(true);
+                    }
+                    else
+                    {
+                        document.getElementById('holder').className = '';
+                        alert("Your zip file doesn't contain a folder with the same name and a conf.json file...");
                     }
                 }
                 else
@@ -252,7 +290,14 @@
             for (let worker = 1; worker <= (cur_properties.workers_x_row*cur_properties.workers_x_column); ++worker)
             {   
                 matrices[worker-1] = [];
-                matrices[worker-1][step] = JSON.parse(fs.readFileSync(`${cur_properties.folder}/${worker}/${step}.json`)).data;
+                if (cur_properties.isZip)
+                {   
+                    matrices[worker-1][step] = JSON.parse(cur_properties.zip.readAsText(`${cur_properties.folder}/${worker}/${step}.json`)).data;
+                }
+                else
+                {
+                    matrices[worker-1][step] = JSON.parse(fs.readFileSync(`${cur_properties.folder}/${worker}/${step}.json`)).data;
+                }
             }
             return matrices;
         }

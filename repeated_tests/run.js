@@ -6,6 +6,7 @@
 
     const width = 4096;
     const height = 4096;
+    const num_steps = 512;
     const repetition = 2;
     let matrix = [];
     let tmp_params = null;
@@ -68,7 +69,8 @@
                 height / Math.pow(2, cur_rep), 
                 Math.pow(2, cur_rep), 
                 Math.pow(2, cur_rep), 
-                10, "tmp_params.json", 
+                num_steps,
+                "tmp_params.json", 
                 "--no-files"
             ]
         );

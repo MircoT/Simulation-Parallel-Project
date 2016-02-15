@@ -1,8 +1,13 @@
 (function() {
     'use strict';
+
+    // Global requirements
     const GofL = require('./gofl_parallel.js');
-    const barriers = require('./barriers.js');
     const cluster = require('cluster');
+    const fs = require('fs');
+
+    // Time interval of the main function of the processes
+    const TIME_INTERVAL = 0;
 
     const usage_text = `=====-
 |
@@ -25,14 +30,8 @@
 |
 =====-`;
 
-    // Time interval of the main function of the processes
-    const TIME_INTERVAL = 0;
-    const fs = require('fs');
-
     var LOG = false;
     var NO_FILES = false;
-
-    Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };
 
     let isInt = (value) =>
     {
@@ -73,13 +72,13 @@
         }
     }
     
-
     let rows = parseInt(args[0]);
     let columns = parseInt(args[1]);
     let workers_x_row = parseInt(args[2]);
     let workers_x_column = parseInt(args[3]);
     let MAX_TIME = parseInt(args[4]);
     let workers_params = null;
+    
     try
     {
         workers_params = JSON.parse(fs.readFileSync(args[5]));
@@ -103,151 +102,158 @@
         console.log(usage_text);
         process.exit(0);
     }
+    // ----- End checking arguments -----
 
-    // ----- Prepare environment -----
-    let NUM_WORKERS = workers_x_row * workers_x_column;
-
-    let initial_params = [];
-    let configuration = new Map();
-
-    for (let cur_row=0; cur_row != workers_x_row; ++cur_row)
+    /* ----- MASTER ----- */
+    if (cluster.isMaster)
     {   
-        configuration.set(cur_row, new Map());
-        for (let cur_col=0; cur_col != workers_x_column; ++cur_col)
-        {
-            let cur_worker_id = cur_col + cur_row*workers_x_column + 1;
-            configuration.get(cur_row).set(cur_col, cur_worker_id);
-        }
-    }
+        // Only the master process require barrier module
+        const barriers = require('./barriers.js');
 
-    let getXY = (w_id) =>
-    {   
-        let result = null;
-        configuration.forEach(
-            (columns, cur_x) =>
+        if (LOG)
+            console.log("<===== I am master =====>");
+
+        Number.prototype.mod = function(base){ return ((this.valueOf() % base) + base) % base; };        
+
+        // ----- Prepare environment -----
+        let NUM_WORKERS = workers_x_row * workers_x_column;
+
+        let initial_params = [];
+        let configuration = new Map();
+
+        for (let cur_row=0; cur_row != workers_x_row; ++cur_row)
+        {   
+            configuration.set(cur_row, new Map());
+            for (let cur_col=0; cur_col != workers_x_column; ++cur_col)
             {
-                columns.forEach(
-                    (cur_id, cur_y) =>
-                    {   
-                        if (cur_id === w_id)
-                        {
-                           result = {row: cur_x, col: cur_y};
-                            return; 
-                        }   
-                    }
-                );
-                if (result !== null)
-                    return;
+                let cur_worker_id = cur_col + cur_row*workers_x_column + 1;
+                configuration.get(cur_row).set(cur_col, cur_worker_id);
             }
-        );
-        return result;
-    };
+        }
 
-    for (let cur_worker=1; cur_worker <= NUM_WORKERS; ++cur_worker)
-    {   
-        let coords = getXY(cur_worker);
-        let cur_params = {   
-            'rows': rows,
-            'columns': columns,
-            'boundaries': {
-                T: configuration.get((coords.row - 1).mod(workers_x_row)).get(coords.col),
-                L: configuration.get(coords.row).get((coords.col - 1).mod(workers_x_column)),
-                R: configuration.get(coords.row).get((coords.col + 1).mod(workers_x_column)),
-                B: configuration.get((coords.row + 1).mod(workers_x_row)).get(coords.col)
-            }
+        let getXY = (w_id) =>
+        {   
+            let result = null;
+            configuration.forEach(
+                (columns, cur_x) =>
+                {
+                    columns.forEach(
+                        (cur_id, cur_y) =>
+                        {   
+                            if (cur_id === w_id)
+                            {
+                               result = {row: cur_x, col: cur_y};
+                                return; 
+                            }   
+                        }
+                    );
+                    if (result !== null)
+                        return;
+                }
+            );
+            return result;
         };
 
-        if (
-                (coords.row > 0 && coords.row < workers_x_row - 1) &&
-                (coords.col > 0 && coords.col < workers_x_column - 1)
-            )
-        {
-            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                         .get((coords.col + 1).mod(workers_x_column));
-        }
-        if (
-                coords.row === 0 &&
-                (coords.col > 0 && coords.col < workers_x_column - 1)
-            )
-        {
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                     .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                     .get((coords.col + 1).mod(workers_x_column));
-        }
-        else if (
-                    coords.row === workers_x_row - 1 &&
-                    (coords.col > 0 && coords.col < workers_x_column - 1)
-                )
-        {
-            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
-                                     .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                     .get((coords.col + 1).mod(workers_x_column));
-        }
-        else if (
-                    coords.col === 0 &&
-                    (coords.row > 0 && coords.row < workers_x_row - 1)
-                )
-        {
-            cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
-                                     .get((coords.col + 1).mod(workers_x_column));
-            cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
-                                     .get((coords.col + 1).mod(workers_x_column));
-        }
-        else if (
-                    coords.col === workers_x_column - 1 &&
-                    (coords.row > 0 && coords.row < workers_x_row - 1)
-                )
-        {
-            cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
-                                     .get((coords.col - 1).mod(workers_x_column));
-            cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
-                                     .get((coords.col - 1).mod(workers_x_column));
-        }
-        else
-        {
+        for (let cur_worker=1; cur_worker <= NUM_WORKERS; ++cur_worker)
+        {   
+            let coords = getXY(cur_worker);
+            let cur_params = {   
+                'rows': rows,
+                'columns': columns,
+                'boundaries': {
+                    T: configuration.get((coords.row - 1).mod(workers_x_row)).get(coords.col),
+                    L: configuration.get(coords.row).get((coords.col - 1).mod(workers_x_column)),
+                    R: configuration.get(coords.row).get((coords.col + 1).mod(workers_x_column)),
+                    B: configuration.get((coords.row + 1).mod(workers_x_row)).get(coords.col)
+                }
+            };
+
             if (
-                    (coords.row === 0 && coords.col === 0) ||
-                    (coords.row === workers_x_row - 1 && coords.col === workers_x_column - 1)
+                    (coords.row > 0 && coords.row < workers_x_row - 1) &&
+                    (coords.col > 0 && coords.col < workers_x_column - 1)
                 )
             {
                 cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+                                             .get((coords.col - 1).mod(workers_x_column));
+                cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                             .get((coords.col + 1).mod(workers_x_column));
+                cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
+                                             .get((coords.col - 1).mod(workers_x_column));
+                cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
+                                             .get((coords.col + 1).mod(workers_x_column));
+            }
+            if (
+                    coords.row === 0 &&
+                    (coords.col > 0 && coords.col < workers_x_column - 1)
+                )
+            {
+                cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
                                          .get((coords.col - 1).mod(workers_x_column));
                 cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
                                          .get((coords.col + 1).mod(workers_x_column));
             }
-            if (
-                        (coords.row === workers_x_row - 1 && coords.col === 0) ||
-                        (coords.row === 0 && coords.col === workers_x_column - 1)
+            else if (
+                        coords.row === workers_x_row - 1 &&
+                        (coords.col > 0 && coords.col < workers_x_column - 1)
+                    )
+            {
+                cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+                                         .get((coords.col - 1).mod(workers_x_column));
+                cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                         .get((coords.col + 1).mod(workers_x_column));
+            }
+            else if (
+                        coords.col === 0 &&
+                        (coords.row > 0 && coords.row < workers_x_row - 1)
                     )
             {
                 cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
                                          .get((coords.col + 1).mod(workers_x_column));
+                cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
+                                         .get((coords.col + 1).mod(workers_x_column));
+            }
+            else if (
+                        coords.col === workers_x_column - 1 &&
+                        (coords.row > 0 && coords.row < workers_x_row - 1)
+                    )
+            {
+                cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+                                         .get((coords.col - 1).mod(workers_x_column));
                 cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
                                          .get((coords.col - 1).mod(workers_x_column));
             }
+            else
+            {
+                if (
+                        (coords.row === 0 && coords.col === 0) ||
+                        (coords.row === workers_x_row - 1 && coords.col === workers_x_column - 1)
+                    )
+                {
+                    cur_params.boundaries.TL = configuration.get((coords.row - 1).mod(workers_x_row))
+                                             .get((coords.col - 1).mod(workers_x_column));
+                    cur_params.boundaries.BR = configuration.get((coords.row + 1).mod(workers_x_row))
+                                             .get((coords.col + 1).mod(workers_x_column));
+                }
+                if (
+                        (coords.row === workers_x_row - 1 && coords.col === 0) ||
+                        (coords.row === 0 && coords.col === workers_x_column - 1)
+                    )
+                {
+                    cur_params.boundaries.TR = configuration.get((coords.row - 1).mod(workers_x_row))
+                                             .get((coords.col + 1).mod(workers_x_column));
+                    cur_params.boundaries.BL = configuration.get((coords.row + 1).mod(workers_x_row))
+                                             .get((coords.col - 1).mod(workers_x_column));
+                }
+            }
+
+            if (workers_params.hasOwnProperty(cur_worker.toString()))
+            {
+                cur_params.start_points = workers_params[cur_worker.toString()];
+            }
+
+            initial_params.push(cur_params);
         }
 
-        if (workers_params.hasOwnProperty(cur_worker.toString()))
-        {
-            cur_params.start_points = workers_params[cur_worker.toString()];
-        }
-
-        initial_params.push(cur_params);
-    }
-
-    // ----- Starting simulation -----
-    if (cluster.isMaster)
-    {   
-        if (LOG)
-            console.log("<===== I am master =====>");
         let start_time = Date.now();
         let times = [];
         let end_callback = false;
@@ -260,14 +266,10 @@
             'workers_x_column': workers_x_column
         };
 
-        let loading = ["\\", "|", "/", "–"];
-
         console.log(`<===== Startin simulation =====>
 -> matrix: ${rows}×${columns}
 -> workers: ${NUM_WORKERS}
 -> steps: ${MAX_TIME}`);
-
-        let cur_time = 0;
 
         // Create barriers
         var barrier_manager = new barriers.BarrierMngr();
@@ -277,6 +279,8 @@
         barrier_manager.add('work_done', NUM_WORKERS, false);
 
         let message_queue = [];
+        let cur_time = 0;
+        let loading = ["\\", "|", "/", "–"];
 
         // Create workers
         for(var i = 0; i != NUM_WORKERS; ++i)
@@ -431,13 +435,13 @@
                         
                     }
                 }
-            }
-            
-        } ;  
+            } 
+        };  
 
         let main_loop_ref = setInterval(main_loop, TIME_INTERVAL);    
 
-        process.on('SIGINT', () => {
+        process.on('SIGINT', () =>
+        {
             console.log("\n<===== Caught interrupt signal =====>");
 
             for (let id in cluster.workers) {
@@ -449,6 +453,7 @@
             process.exit(0);
         });
     }
+    /* ----- Workers ----- */
     else if (cluster.isWorker)
     {   
         if (LOG)

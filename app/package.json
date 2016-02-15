@@ -2,10 +2,13 @@
   "main": "index.html",
   "name": "GofL-Sim",
   "window": {
-  	"title": "GofL Parallel Simulator Viewer",
-  	"toolbar": false,
-  	"width": 700,
-  	"height": 700,
+    "title": "GofL Parallel Simulator Viewer",
+    "toolbar": false,
+    "width": 700,
+    "height": 700,
     "icon": "glider.png"
+  },
+  "dependencies": {
+    "adm-zip": "^0.4.7"
   }
 }
