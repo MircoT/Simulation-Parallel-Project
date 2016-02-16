@@ -5,6 +5,8 @@
     },
     "files": [
         "sim.js",
-        "gofl_parallel.js"
+        "gofl_parallel.js",
+        "barriers.js",
+        "repeated_tests/run.js"
     ]
 }
