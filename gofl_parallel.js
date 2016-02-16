@@ -456,17 +456,32 @@
          * Print into a file in JSON format the current state without boundaries
          */
         gridToFile() {
-            try {
+            let out_dir = false;
+            try
+            {
                 fs.lstatSync(`out`).isDirectory();
-            } catch(e) {
-            if ( e.code == 'ENOENT')
-                fs.mkdirSync(`out`);
+            } catch(e) 
+            {
+                if ( e.code === 'ENOENT')
+                    fs.mkdirSync(`out`);
             }
-            try {
+            try
+            {
+                if (!out_dir)
+                    fs.mkdirSync(`out`);
+            }
+            catch(e) 
+            {
+                if ( e.code !== 'EEXIST')
+                    throw(e);
+            }
+            try 
+            {
                 fs.lstatSync(`out/${this.worker_id}`).isDirectory();
-            } catch(e) {
-            if ( e.code == 'ENOENT')
-                fs.mkdirSync(`out/${this.worker_id}`);
+            } catch(e) 
+            {
+                if ( e.code === 'ENOENT')
+                    fs.mkdirSync(`out/${this.worker_id}`);
             }
 
             let result = [];

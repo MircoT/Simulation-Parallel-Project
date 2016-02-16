@@ -19,5 +19,8 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^2.4.5"
+  },
+  "dependencies": {
+    "adm-zip": "^0.4.7"
   }
 }

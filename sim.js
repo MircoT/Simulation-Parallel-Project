@@ -13,25 +13,33 @@
 |
 |  Usage:
 |
-|    node sim.js rows cols wXrow wXcol steps params [-v] [--no-files]
+|    node sim.js rows cols wXrow wXcol steps params [-v] [--no-files] [-zip] [-name=yourname]
 |
-|    * rows  : number of rows per worker (integer > 0)
-|    * cols  : number of columns per worker (integer > 0)
-|    * wXrow : number of workers in a row (integer >= 1)
-|    * wXcol : number of workers in a column (integer >= 1)
-|    * steps : number of steps of the simulation (integer >= 0)
-|    * params: initial params for each worker (JSON file path)
-|    * -v    : verbose output
+|    * rows       : number of rows per worker (integer > 0)
+|    * cols       : number of columns per worker (integer > 0)
+|    * wXrow      : number of workers in a row (integer >= 1)
+|    * wXcol      : number of workers in a column (integer >= 1)
+|    * steps      : number of steps of the simulation (integer >= 0)
+|    * params     : initial params for each worker (JSON file path)
+|    * -v         : verbose output
+|    * --no-files : the output folder will not be created
+|    * -zip       : output folder will be compressed
+|    * -name      : specify the name of output folder as yourname
 |
 |  The result will be stored in the current working directory
-|  inside the folder named 'out'.
+|  inside the folder named  by default 'out' (this is also the
+|  default name of the zip file, if you specify the -zip parameter).
+|
+|  Note that --no-files parameter is icomplatible with -zip and -name.
 |
 |  The folder and his contents will be overwritten.
 |
 =====-`;
 
-    var LOG = false;
-    var NO_FILES = false;
+    let LOG = false;
+    let NO_FILES = false;
+    let ZIP_FILE = false;
+    let FILE_NAME = null;
 
     let isInt = (value) =>
     {
@@ -56,7 +64,10 @@
     {   
         for (let index = 6; index !== args.length; ++index)
         {
-            if (args[index] !== "-v" && args[index] !== "--no-files")
+            if (args[index] !== "-v" &&
+                args[index] !== "--no-files" &&
+                args[index] !== "-zip" &&
+                args[index].indexOf("-name=") === -1)
             {
                 console.log(usage_text);
                 process.exit(0); 
@@ -68,6 +79,14 @@
             else if (args[index] === "--no-files")
             {
                 NO_FILES = true;
+            }
+            else if (args[index] === "-zip")
+            {
+                ZIP_FILE = true;
+            }
+            else if (args[index].indexOf("-name=") !== -1)
+            {
+                FILE_NAME = args[index].split("=")[1];
             }
         }
     }
@@ -96,7 +115,8 @@
         !isInt(columns) || columns <= 0 ||
         !isInt(workers_x_row) || workers_x_row < 1 ||
         !isInt(workers_x_column) || workers_x_column < 1 ||
-        !isInt(MAX_TIME) || MAX_TIME < 0
+        !isInt(MAX_TIME) || MAX_TIME < 0 ||
+        (NO_FILES && (ZIP_FILE || FILE_NAME !== null))
       )
     {
         console.log(usage_text);
@@ -109,6 +129,25 @@
     {   
         // Only the master process require barrier module
         const barriers = require('./barriers.js');
+
+        function deleteFolderRecursive(path) {
+            if (fs.existsSync(path))
+            {
+                fs.readdirSync(path).forEach((file,index) =>
+                {
+                    let curPath = path + "/" + file;
+                    if (fs.lstatSync(curPath).isDirectory())
+                    {
+                        deleteFolderRecursive(curPath);
+                    } 
+                    else
+                    {
+                        fs.unlinkSync(curPath);
+                    }
+                });
+                fs.rmdirSync(path);
+            }
+        };
 
         if (LOG)
             console.log("<===== I am master =====>");
@@ -420,13 +459,30 @@
 
                             if (!NO_FILES)
                             {
+                                let folder_name = "out";
                                 try {
-                                    fs.lstatSync(`out`).isDirectory();
+                                    fs.lstatSync(`${folder_name}`).isDirectory();
                                 } catch(e) {
                                 if ( e.code == 'ENOENT')
-                                    fs.mkdirSync(`out`);
+                                    fs.mkdirSync(`${folder_name}`);
                                 }
-                                fs.writeFileSync(`out/conf.json`, JSON.stringify(package_conf, null, 4));
+                                fs.writeFileSync(`${folder_name}/conf.json`, JSON.stringify(package_conf, null, 4));
+
+                                if (FILE_NAME !== null)
+                                {
+                                    fs.renameSync(`${folder_name}`, FILE_NAME)
+                                    folder_name = FILE_NAME;
+                                }
+
+                                if (ZIP_FILE)
+                                {
+                                    const AdmZip = require('adm-zip');
+                                    let zip = new AdmZip();
+                                    zip.addLocalFolder(`${folder_name}`, `${folder_name}`);
+                                    zip.writeZip(`${folder_name}.zip`);
+                                    deleteFolderRecursive(`${folder_name}`);
+                                    console.log("<===== Created ZIP file =====>");
+                                }
                             }
                             
                             console.log(`<===== Elapsed time: ${package_conf.time_elapsed} =====>`);
