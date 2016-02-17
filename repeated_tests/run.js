@@ -4,9 +4,9 @@
     const spawnSync = require('child_process').spawnSync;
     const fs = require('fs');
 
-    const width = 4096;
-    const height = 4096;
-    const num_steps = 512;
+    const width = 512;
+    const height = 512;
+    const num_steps = 20;
     const repetition = 2;
     let matrix = [];
     let tmp_params = null;
@@ -60,7 +60,7 @@
 
     for (let cur_rep=0; cur_rep !== repetition; ++cur_rep)
     {
-        tmp_params = create_initial_params(2, 2);
+        tmp_params = create_initial_params(Math.pow(2, cur_rep), Math.pow(2, cur_rep));
         fs.writeFileSync("./tmp_params.json", JSON.stringify(tmp_params, null, 2));
         result = spawnSync("node", 
             [
@@ -71,7 +71,8 @@
                 Math.pow(2, cur_rep), 
                 num_steps,
                 "tmp_params.json", 
-                "--no-files"
+                "-zip",
+                `-name=${width}x${height}x${num_steps}_${Math.pow(2, cur_rep)*Math.pow(2, cur_rep)}`
             ]
         );
         console.log(result.stdout.toString());
